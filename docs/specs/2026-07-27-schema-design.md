@@ -262,16 +262,16 @@ Use `drizzle-zod` to generate base Zod schemas from Drizzle schema definitions. 
 
 ### Validation rules
 
-| Rule                                 | Type    | Behavior                                                                                                                                  |
-| ------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `rt` can be negative                 | Allow   | Red lights are real data. No min constraint.                                                                                              |
-| `sixty_ft < 0.110` on Left Lane      | Warning | Ghost sensor reading. Allow entry, surface warning to user. Do not reject.                                                                |
-| `mph` plausibility                   | Warning | Values outside 15–60 MPH flagged. Historical data has `3253.00` typos — catch at entry, not at analysis.                                  |
-| `dial_in` only for Elimination       | Enforce | If `session_type = 'Practice'`, `dial_in` must be NULL.                                                                                   |
-| `round` only for Elimination         | Enforce | If `session_type = 'Practice'`, `round` must be NULL. If `session_type = 'Elimination'`, `round` should be >= 1.                          |
-| `win` only for Elimination           | Enforce | If `session_type = 'Practice'`, `win` must be NULL.                                                                                       |
-| `gear_ratio` consistency             | Warning | If `pinion` and `crown` both set, `gear_ratio` should equal `crown / pinion`. Allow override (measured ratio may differ from calculated). |
-| `car_version_id` references same car | Enforce | Snapshot's `car_id` must match run's `car_id`.                                                                                            |
+| Rule                                 | Type    | Behavior                                                                                                                                                                                            |
+| ------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rt` can be negative                 | Allow   | Red lights are real data. No min constraint.                                                                                                                                                        |
+| `sixty_ft < 0.110` on Left Lane      | Warning | Ghost sensor reading. Allow entry, surface warning to user. Do not reject.                                                                                                                          |
+| `mph` plausibility                   | Warning | Values `<= 0` or `> 90` flagged. User knows their data — preventing submission is more detrimental than allowing real values outside typical range. Historical typos (e.g. `3253.00`) still caught. |
+| `dial_in` only for Elimination       | Enforce | If `session_type = 'Practice'`, `dial_in` must be NULL.                                                                                                                                             |
+| `round` only for Elimination         | Enforce | If `session_type = 'Practice'`, `round` must be NULL. If `session_type = 'Elimination'`, `round` should be >= 1.                                                                                    |
+| `win` only for Elimination           | Enforce | If `session_type = 'Practice'`, `win` must be NULL.                                                                                                                                                 |
+| `gear_ratio` consistency             | Warning | If `pinion` and `crown` both set, `gear_ratio` should equal `crown / pinion`. Allow override (measured ratio may differ from calculated).                                                           |
+| `car_version_id` references same car | Enforce | Snapshot's `car_id` must match run's `car_id`.                                                                                                                                                      |
 
 ### Implementation approach
 
