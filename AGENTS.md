@@ -15,6 +15,32 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 
 <!--VITE PLUS END-->
 
+# Git Workflow
+
+## Branch Protection
+
+**`main` is protected at both levels:**
+
+- **Remote** — GitHub ruleset blocks direct pushes to `main`. All changes require a pull request.
+- **Local** — Pre-commit hook blocks commits on `main`/`master`. Error message tells you to create a feature branch.
+
+## Process
+
+1. **Create a feature branch** from `main` before any implementation:
+   ```bash
+   git checkout -b feat/description
+   ```
+2. **Make changes, commit, push** to your feature branch.
+3. **Open a pull request** to `main` on GitHub.
+4. **Merge via PR** — never push or merge directly to `main`.
+
+## Branch naming
+
+- `feat/description` — new features
+- `fix/description` — bug fixes
+- `chore/description` — tooling, config, dependencies
+- `docs/description` — documentation
+
 <!--Kaparthy Rules-->
 
 # Karpathy Guidelines 12 Rules
@@ -142,4 +168,4 @@ Default to surfacing uncertainty, not hiding it.
 <!--END Kaparthy Rules-->
 
 Tests are colocated with source.
-FOllow TDD principles. Before writing code, attempt to write a test taht encapsulate the change - Ensure that the test fails (red), and after implementation the test passes (Green). This is Test Driven development - red to green testing.
+Follow TDD principles. Before writing code, attempt to write a test that encapsulates the change — ensure the test fails (red), and after implementation the test passes (green). This is Test-Driven Development: red to green testing.

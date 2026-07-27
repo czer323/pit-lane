@@ -1,1 +1,10 @@
+#!/bin/sh
+# Block commits on protected branches
+protected_branches="^(main|master)$"
+branch=$(git rev-parse --abbrev-ref HEAD)
+if echo "$branch" | grep -qE "$protected_branches"; then
+  echo "ERROR: Direct commits to '$branch' are not allowed."
+  echo "Create a feature branch first: git checkout -b feat/your-change"
+  exit 1
+fi
 vp staged
