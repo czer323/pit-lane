@@ -1,0 +1,39 @@
+{
+  "name": "pit-lane",
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "start": "node .output/server/index.mjs",
+    "preview": "vp preview",
+    "test": "vp test",
+    "prepare": "vp config"
+  },
+  "dependencies": {
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.16.2",
+    "@solidjs/start": "^2.0.0-beta.0",
+    "nitro": "^3.0.260610-beta",
+    "solid-js": "^1.9.5",
+    "vite": "catalog:"
+  },
+  "devDependencies": {
+    "@solidjs/testing-library": "^0.8.10",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.6.1",
+    "eslint-plugin-solid": "^0.14.5",
+    "jsdom": "^26.0.0",
+    "vite-plus": "catalog:",
+    "vitest": "^4.1.6"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.17.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
