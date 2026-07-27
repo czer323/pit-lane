@@ -58,6 +58,32 @@ System tracks **slot drag racing**, not circuit/lap racing. Vocabulary comes fro
 7. **Car names are primary human identifier.** `car_id` is for machines. UI always shows `name` prominently.
 8. **Timestamps are dates, not datetimes.** System tracks which session a run belongs to, not exact second. Sufficient for all current analysis.
 
+### Domain vocabulary → schema mapping
+
+| Domain concept            | Schema location                               | Type                | Notes                                                              |
+| ------------------------- | --------------------------------------------- | ------------------- | ------------------------------------------------------------------ |
+| Car (physical vehicle)    | `cars`                                        | table               | Current build state only. History in `car_snapshots`.              |
+| Car build / configuration | `car_snapshots`                               | table               | Immutable point-in-time snapshot. Type-2 SCD.                      |
+| Race day / session        | `events`                                      | table               | Natural key: (event_date, track, session_label).                   |
+| Pass / run                | `runs`                                        | table               | One row = one pass. Atomic.                                        |
+| Reaction time (RT)        | `runs.rt`                                     | REAL nullable       | Negative = red light. Valid data.                                  |
+| 60-foot time              | `runs.sixty_ft`                               | REAL nullable       | < 0.110 on Left Lane = ghost sensor. Warn, do not reject.          |
+| 330-foot time             | `runs.three30_ft`                             | REAL nullable       | Mid-track marker. Validates 60ft.                                  |
+| Elapsed time (ET)         | `runs.et`                                     | REAL nullable       | Full-track time. Primary performance metric.                       |
+| Trap speed                | `runs.mph`                                    | REAL nullable       | Speed at finish.                                                   |
+| Lane                      | `runs.lane`                                   | TEXT nullable       | Left, Right, or NULL (single-car elimination).                     |
+| Session type              | `runs.session_type`                           | TEXT NOT NULL       | Practice or Elimination. CHECK constraint.                         |
+| Elimination round         | `runs.round`                                  | INTEGER nullable    | 1-indexed. NULL for practice.                                      |
+| Dial-in                   | `runs.dial_in`                                | REAL nullable       | Predicted ET for elimination bracket. NULL for practice.           |
+| Breakout                  | derivable                                     | —                   | `et < dial_in`. Do not store. Compute at query time.               |
+| Win / loss                | `runs.win`                                    | BOOLEAN nullable    | Won elimination pairing. NULL for practice.                        |
+| Build at race time        | `runs.car_version_id`                         | INTEGER nullable FK | Direct link to `car_snapshots`. Temporal fallback in view if NULL. |
+| Ambient conditions        | `events.temperature_f`, `events.humidity_pct` | INTEGER nullable    | Per-event. Override at run level if different.                     |
+| Car weight                | `cars.weight_g`, `car_snapshots.weight_g`     | INTEGER nullable    | Current in cars. Historical in snapshots.                          |
+| Gear ratio                | `cars.gear_ratio`, `car_snapshots.gear_ratio` | REAL nullable       | `crown / pinion`. Denormalized for query convenience.              |
+| Rollout                   | `cars.rollout`, `car_snapshots.rollout`       | REAL nullable       | Distance per motor rev. Key gearing metric.                        |
+| Analytical flat view      | `run_details`                                 | VIEW                | Joins all tables. COALESCE fallback for version resolution.        |
+
 ---
 
 ## Schema Definition
