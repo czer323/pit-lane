@@ -193,3 +193,22 @@ Caveman removes interpretation slack. "The system should probably validate the R
 Applies to spec documents in `docs/specs/`. Does not apply to code comments, commit messages, or casual conversation.
 
 <!--CAVEMAN SPEC END-->
+
+<!--DEPENDENCY PROTOCOL START-->
+
+# Dependency Protocol
+
+Rules for managing dependencies. Reduces lockfile churn and CI surprises.
+
+## Rules
+
+- Add packages via `vp add <name>`. Never edit `package.json` or `pnpm-lock.yaml` by hand.
+- After rebasing onto a branch that changed `package.json`, run `vp install` before committing to regenerate lockfile.
+- CI fails with module-not-found? Run `vp install` locally first. Lockfile likely out of sync.
+- Commit `pnpm-lock.yaml` alongside any dependency change.
+
+## Why
+
+Hand-editing package.json produces lockfile inconsistencies that pass local checks but fail CI. `vp add` keeps both files consistent.
+
+<!--DEPENDENCY PROTOCOL END-->
