@@ -2,6 +2,7 @@ import { defineConfig } from "vite-plus";
 import { nitro } from "nitro/vite";
 
 import { solidStart } from "@solidjs/start/config";
+import solid from "vite-plugin-solid";
 import { lazyPlugins } from "vite-plus";
 
 export default defineConfig({
@@ -51,5 +52,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
   },
-  plugins: lazyPlugins(() => [solidStart(), nitro()]),
+  resolve: {
+    conditions: ["development", "browser"],
+  },
+  plugins: lazyPlugins(() => {
+    if (process.env.VITEST) return [solid({ hot: false })];
+    return [solidStart(), nitro(), solid()];
+  }),
 });

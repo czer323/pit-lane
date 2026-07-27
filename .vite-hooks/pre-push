@@ -1,0 +1,18 @@
+#!/bin/sh
+# Pre-push hook: run full validation before pushing
+# Runs vp check (fmt + lint + types) and vp test
+# Aborts push if any check fails
+
+echo "Running pre-push validation..."
+
+if ! vp check; then
+  echo "ERROR: vp check failed. Fix issues before pushing."
+  exit 1
+fi
+
+if ! vp test; then
+  echo "ERROR: vp test failed. Fix issues before pushing."
+  exit 1
+fi
+
+echo "Pre-push validation passed."
