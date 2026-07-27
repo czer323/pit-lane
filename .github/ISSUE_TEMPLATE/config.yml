@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project Discussions
+    url: https://github.com/lordtris/pit-lane/discussions
+    about: Please ask and answer questions here.

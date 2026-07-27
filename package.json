@@ -6,6 +6,7 @@
     "build": "vp build",
     "start": "node .output/server/index.mjs",
     "preview": "vp preview",
+    "check": "vp check",
     "test": "vp test",
     "prepare": "vp config"
   },
