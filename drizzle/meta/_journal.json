@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1785153963828,
+      "tag": "0000_loving_dazzler",
+      "breakpoints": true
+    }
+  ]
+}
