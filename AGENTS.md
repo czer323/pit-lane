@@ -169,3 +169,27 @@ Default to surfacing uncertainty, not hiding it.
 
 Tests are colocated with source.
 Follow TDD principles. Before writing code, attempt to write a test that encapsulates the change — ensure the test fails (red), and after implementation the test passes (green). This is Test-Driven Development: red to green testing.
+
+<!--CAVEMAN SPEC START-->
+
+# Spec Writing Convention: Caveman Micro
+
+Specs in this repo are contracts. Reduce ambiguity. Write specs in caveman style.
+
+## Rules
+
+- Drop articles (a, an, the), filler (just, really, basically, actually).
+- Drop pleasantries (sure, certainly, happy to).
+- No hedging. Fragments fine. Short synonyms.
+- Technical terms stay exact. Code blocks unchanged.
+- Pattern: [thing] [action] [reason]. [next step].
+
+## Why
+
+Caveman removes interpretation slack. "The system should probably validate the RT field" → "System validates RT field. Negative RT allowed." Less words, less ambiguity, stronger contract.
+
+## Where
+
+Applies to spec documents in `docs/specs/`. Does not apply to code comments, commit messages, or casual conversation.
+
+<!--CAVEMAN SPEC END-->
