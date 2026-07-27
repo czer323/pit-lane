@@ -1,17 +1,30 @@
 #!/bin/sh
-# Pre-push hook: run full validation before pushing
-# Runs vp check (fmt + lint + types) and vp test
-# Aborts push if any check fails
+# Pre-push hook: run validation before pushing.
+# Scopes formatting check to changed files only. Runs tests unconditionally.
 
 echo "Running pre-push validation..."
 
-if ! vp check; then
-  echo "ERROR: vp check failed. Fix issues before pushing."
-  exit 1
+# Get changed files relative to origin/main (always available locally)
+changed_files=$(git diff --name-only origin/main...HEAD 2>/dev/null || true)
+
+# Filter to files vp check can format
+checkable_files=$(echo "$changed_files" | grep -E '\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
+
+if [ -n "$checkable_files" ]; then
+  echo "Checking $(echo "$checkable_files" | wc -l | tr -d ' ') file(s)..."
+  if ! vp check --no-error-on-unmatched-pattern $checkable_files 2>&1; then
+    echo ""
+    echo "ERROR: vp check failed on changed files. Fix before pushing."
+    echo "Do NOT use --no-verify to bypass this hook."
+    exit 1
+  fi
+else
+  echo "No checkable files in push — skipping vp check."
 fi
 
-if ! vp test; then
-  echo "ERROR: vp test failed. Fix issues before pushing."
+if ! vp test 2>&1; then
+  echo ""
+  echo "ERROR: vp test failed. Fix failing tests before pushing."
   exit 1
 fi
 

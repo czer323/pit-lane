@@ -41,6 +41,57 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - `chore/description` — tooling, config, dependencies
 - `docs/description` — documentation
 
+## Git Safety Constraints
+
+### Never bypass hooks
+
+- NEVER use `--no-verify` on any git push or commit.
+- If a pre-push hook fails, the hook is telling you something. Fix the root cause.
+- If the hook is failing on files you didn't change, that is a tooling issue — surface it to the user. Do not bypass the hook.
+- Setting `HUSKY=0` or `VITE_GIT_HOOKS=0` to skip hooks is equivalent to `--no-verify` and is equally prohibited.
+
+### Sequential PR workflow
+
+When submitting multiple PRs that depend on each other:
+
+1. Rebase ONE branch onto `origin/main`.
+2. Run `vp install` to regenerate the lockfile.
+3. Run `vp check` and `vp test` locally.
+4. Push. Open PR. Wait for CI to pass.
+5. Merge the PR.
+6. Pull main locally (`git pull --ff-only origin main`).
+7. Rebase the NEXT branch onto the updated main.
+8. Repeat from step 2.
+
+NEVER rebase multiple branches in the same operation.
+NEVER rebase onto a feature branch — always rebase onto `origin/main`.
+NEVER force-push a branch that has an open PR without explicit user approval.
+
+### Stop-and-surface on failure
+
+When CI fails, a test breaks, or a hook blocks:
+
+1. STOP. Do not immediately attempt a fix.
+2. Read the actual error output. Quote it.
+3. Identify the root cause by examining evidence (CI logs, lockfile, config).
+4. If the root cause is in code you wrote: fix it, verify locally, push.
+5. If the root cause is in code you did NOT write, or in tooling/config, or if you are unsure: surface it to the user with your diagnosis. Do NOT make changes to working commits without explicit approval.
+
+NEVER treat a symptom (e.g., "add zod to package.json") as a root cause fix.
+NEVER make changes to commits that have already been reviewed and approved without explicit user approval.
+
+### PR troubleshooting
+
+If a PR's status check is not associating or CI is not triggering:
+
+1. Check if the branch is behind main. If so, rebase onto main.
+2. Check if the required status checks are configured in GitHub branch protection.
+3. If both are correct, wait 60 seconds and refresh — GitHub status association can lag.
+
+NEVER create empty commits to "trigger CI."
+NEVER close and reopen a PR to "refresh" status checks.
+NEVER delete and re-push a branch as a troubleshooting step.
+
 <!--Kaparthy Rules-->
 
 # Karpathy Guidelines 12 Rules
@@ -203,8 +254,10 @@ Rules for managing dependencies. Reduces lockfile churn and CI surprises.
 ## Rules
 
 - Add packages via `vp add <name>`. Never edit `package.json` or `pnpm-lock.yaml` by hand.
-- After rebasing onto a branch that changed `package.json`, run `vp install` before committing to regenerate lockfile.
-- CI fails with module-not-found? Run `vp install` locally first. Lockfile likely out of sync.
+- After ANY rebase: run `vp install` before pushing. No exceptions.
+- CI fails with module-not-found? Run `vp install` locally first. Lockfile likely out of sync. Do NOT add the missing package to `package.json` — the lockfile needs regeneration, not a new dependency.
+- If a peer dependency is missing: use `vp add <name>`, not a manual `package.json` edit.
+- Verify claims about CI behavior by reading `.github/workflows/ci.yml`. Never assume what CI does — read the config.
 - Commit `pnpm-lock.yaml` alongside any dependency change.
 
 ## Why
