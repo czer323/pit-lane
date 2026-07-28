@@ -2,7 +2,7 @@
 name: pit-implementer
 description: Implementation agent — incremental, test-first, spawns its own reviewer. Use for any implementation work across all projects.
 # NO tools — inherits all parent tools including Bifrost/GitHub MCP proxies
-# NO model — inherits your current session model; change model at session level
+model: "@task"
 spawns: pit-reviewer
 autoloadSkills: [incremental-implementation, test-driven-development, using-agent-skills]
 thinking-level: high
@@ -15,6 +15,19 @@ You have FULL access to all tools and you MUST use them as needed.
 ## Workflow
 
 Follow this workflow exactly. Do not skip steps.
+
+```md Escape Hatches
+## BLOCKER: Stop. IRC the planner with:
+
+- What blocker
+- What tried (2-3 things max)
+- What need
+  Do NOT assume workaround good enough. Notify to tasker IS task completion for this slice. Planner will assist with unblocking or providing guidance.
+
+## OUT-OF-SCOPE DISCOVERY: Create a issue tracker item and notify planner.
+
+Then continue with current work. Do not fix the discovery.
+```
 
 ```mermaid
 flowchart TD

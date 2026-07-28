@@ -37,6 +37,18 @@
       "skillPath": "skills/context-engineering/SKILL.md",
       "computedHash": "bb8864454c5a24636cab86c4b3c4b29e7e7431c80485bfd7c9c0a19a01936510"
     },
+    "conventional-branch": {
+      "source": "conventional-branch/conventional-branch",
+      "sourceType": "github",
+      "skillPath": "skills/conventional-branch/SKILL.md",
+      "computedHash": "f7b04bf323a6e2e9173bff2b150773f196332bb0ae00463906342da84d621ed8"
+    },
+    "conventional-commit-message": {
+      "source": "conventional-changelog/conventional-changelog",
+      "sourceType": "github",
+      "skillPath": "skills/conventional-commit-message/SKILL.md",
+      "computedHash": "6ae250d67edc757e2e54163dae2d32f7b44bd8827231cbab2895db8fc0331ac3"
+    },
     "debugging-and-error-recovery": {
       "source": "addyosmani/agent-skills",
       "sourceType": "github",
