@@ -106,9 +106,9 @@ export function createMockDb() {
     return rows.filter((r) => r[prop] === cond.value);
   }
 
-  function sortRows(rows: any[], order: any): any[] {
+  function sortRows(tname: string, rows: any[], order: any): any[] {
     if (!order) return rows;
-    const prop = mapField("", order.field);
+    const prop = mapField(tname, order.field);
     const dir = order.dir === "desc" ? -1 : 1;
     return [...rows].sort((a, b) => {
       const av = a[prop];
@@ -131,15 +131,6 @@ export function createMockDb() {
     return [row];
   }
 
-  function makeThenable(
-    tname: string,
-    rows: any[],
-  ): Promise<any[]> & { then: (resolve: any, reject: any) => Promise<void> } {
-    return {
-      then: (resolve: any, reject: any) => Promise.resolve(rows).then(resolve, reject),
-    } as any;
-  }
-
   return {
     insert: (table: any) => ({
       values: (data: any) => {
@@ -160,11 +151,13 @@ export function createMockDb() {
         return {
           where: (cond: any) => ({
             orderBy: (order: any) =>
-              makeThenable(tname, sortRows(filterRows(tname, allRows(), cond), order)),
-            then: makeThenable(tname, filterRows(tname, allRows(), cond)).then,
+              Promise.resolve(sortRows(tname, filterRows(tname, allRows(), cond), order)),
+            then: Promise.resolve(filterRows(tname, allRows(), cond)).then.bind(
+              Promise.resolve(filterRows(tname, allRows(), cond)),
+            ),
           }),
-          orderBy: (order: any) => makeThenable(tname, sortRows(allRows(), order)),
-          then: makeThenable(tname, allRows()).then,
+          orderBy: (order: any) => Promise.resolve(sortRows(tname, allRows(), order)),
+          then: Promise.resolve(allRows()).then.bind(Promise.resolve(allRows())),
         };
       },
     }),
@@ -176,7 +169,7 @@ export function createMockDb() {
             const tname = ensureTable(table);
             const store = stores.get(tname)!;
             const prop = mapField(tname, cond.field);
-            let updated: any[] = [];
+            const updated: any[] = [];
             for (const [id, row] of store) {
               if (row[prop] === cond.value) {
                 const merged = { ...row, ...data };
@@ -187,7 +180,6 @@ export function createMockDb() {
             return Promise.resolve(updated);
           },
           then: (resolve: any, reject: any) => {
-            // bare await (no returning) — same effect but no result
             const tname = ensureTable(table);
             const store = stores.get(tname)!;
             const prop = mapField(tname, cond.field);
@@ -218,7 +210,6 @@ export function createMockDb() {
           return Promise.resolve(deleted);
         },
         then: (resolve: any, reject: any) => {
-          // bare await (no returning)
           const tname = ensureTable(table);
           const store = stores.get(tname)!;
           const prop = mapField(tname, cond.field);
