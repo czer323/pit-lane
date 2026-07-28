@@ -1,0 +1,51 @@
+.cars-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cars-header h1 {
+  margin: 0;
+}
+
+.btn-add {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #335d92;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+  font-weight: 600;
+  background: #f5f5f5;
+}
+
+@media (max-width: 480px) {
+  th,
+  td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.875rem;
+  }
+}
