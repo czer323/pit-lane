@@ -56,6 +56,9 @@ export default defineConfig({
   },
   resolve: {
     conditions: ["development", "browser"],
+    alias: {
+      "~": "/src",
+    },
   },
   plugins: lazyPlugins(() => {
     if (process.env.VITEST) return [solid({ hot: false })];
