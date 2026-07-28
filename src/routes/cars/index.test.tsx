@@ -9,7 +9,7 @@ vi.mock("@solidjs/router", () => ({
 }));
 
 vi.mock("~/server/api/cars", () => ({
-  listCars: vi.fn(async () => [
+  listCars: vi.fn<() => Promise<any[]>>(async () => [
     {
       carId: 1,
       name: "Lightning",

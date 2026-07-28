@@ -8,11 +8,11 @@ import * as schema from "../db/schema";
 // drizzle-orm/libsql and @libsql/client in tests, which would pull in the
 // `ws` package that breaks under vite's `browser` resolve condition.
 
-const { getDbMock } = vi.hoisted(() => ({ getDbMock: vi.fn() }));
+const { getDbMock } = vi.hoisted(() => ({ getDbMock: vi.fn<() => any>() }));
 vi.mock("../db", () => ({
   getDb: getDbMock,
   schema: schema,
-  createDb: vi.fn(),
+  createDb: vi.fn<() => void>(),
 }));
 
 // Mock drizzle-orm operators so our mock DB can interpret them
@@ -174,7 +174,7 @@ function makeMockDb() {
           // Support both .returning() and bare await (no .returning())
           returning: async () => doInsert(data),
           then: (resolve: any, reject: any) => {
-            Promise.resolve(doInsert(data)).then(resolve, reject);
+            void Promise.resolve(doInsert(data)).then(resolve, reject);
           },
         }),
       };
@@ -184,7 +184,7 @@ function makeMockDb() {
         const tname = tableName(table);
 
         const baseThen = (cond: any, order: any) => (resolve: any, reject: any) => {
-          Promise.resolve()
+          void Promise.resolve()
             .then(() => {
               if (tname === "cars") {
                 let rows = Array.from(carStore.values());
@@ -267,7 +267,7 @@ function makeMockDb() {
         where: (cond: any) => ({
           returning: async () => doDelete(cond),
           then: (resolve: any, reject: any) => {
-            Promise.resolve(doDelete(cond)).then(resolve, reject);
+            void Promise.resolve(doDelete(cond)).then(resolve, reject);
           },
         }),
       };
@@ -307,7 +307,7 @@ describe("createCar", () => {
   });
 
   it("rejects invalid input (missing required name)", async () => {
-    await expect(createCar({ body: "S10" })).rejects.toThrow();
+    await expect(createCar({ body: "S10" })).rejects.toThrow("Invalid car data");
   });
 });
 

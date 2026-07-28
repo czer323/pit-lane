@@ -20,7 +20,11 @@ export default function EditCar(props: { id: string }) {
     const formData = new FormData(form);
     const input: Record<string, unknown> = {};
     for (const [key, value] of formData.entries()) {
-      if (value === "") continue;
+      // Empty string means user deliberately cleared the field → send null
+      if (value === "") {
+        input[key] = null;
+        continue;
+      }
       const num = Number(value);
       input[key] = Number.isNaN(num) ? value : num;
     }

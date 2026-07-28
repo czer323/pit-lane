@@ -76,7 +76,7 @@ export default function CarDetail(props: { id: string }) {
                   <Show when={c().snapshots.length > 0} fallback={<p>No version history yet.</p>}>
                     <ul class="timeline-list">
                       <For each={c().snapshots}>
-                        {(snap, i) => (
+                        {(snap) => (
                           <li class="timeline-item">
                             <div class="timeline-date">{snap.snapshotDate}</div>
                             <Show when={snap.motor}>
