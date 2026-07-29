@@ -13,5 +13,3 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
-
-storeDir: C:\Users\czer3\AppData\Local\pnpm\store\v10
