@@ -1,0 +1,130 @@
+"use server";
+
+import { eq, desc } from "drizzle-orm";
+
+import { getDb } from "~/server/db";
+import { events, runs } from "~/server/db/schema";
+import { insertEventSchema } from "~/server/db/validation";
+
+// ─── Input schema (derived, not modifying validation.ts) ─────────────
+
+const eventInputSchema = insertEventSchema.omit({
+  eventId: true,
+});
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Check if any row in `rows` conflicts on the natural key
+ * (eventDate, track, sessionLabel).  Matches SQLite unique-constraint
+ * semantics: NULL values are treated as distinct, so two rows where
+ * sessionLabel is NULL on either side do NOT conflict.
+ */
+function naturalKeyConflict(
+  rows: Array<{ eventId?: number; track: string; sessionLabel: string | null }>,
+  excludeId: number | undefined,
+  track: string,
+  sessionLabel: string | null | undefined,
+): boolean {
+  return rows.some(
+    (e) =>
+      e.eventId !== excludeId &&
+      e.track === track &&
+      e.sessionLabel != null &&
+      sessionLabel != null &&
+      e.sessionLabel === sessionLabel,
+  );
+}
+
+// ─── Server functions ──────────────────────────────────────────────────
+
+export async function createEvent(input: unknown) {
+  const parsed = eventInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Invalid event data: ${parsed.error.message}`);
+  }
+
+  const data = parsed.data;
+  const db = getDb();
+
+  // Check natural key uniqueness
+  const matches = await db.select().from(events).where(eq(events.eventDate, data.eventDate));
+  if (naturalKeyConflict(matches, undefined, data.track, data.sessionLabel)) {
+    throw new Error(
+      `Duplicate event: ${data.eventDate}, ${data.track}, ${data.sessionLabel ?? "(no session)"}`,
+    );
+  }
+
+  const [created] = await db.insert(events).values(data).returning();
+  return created;
+}
+
+export async function listEvents() {
+  const db = getDb();
+  const allEvents = await db.select().from(events).orderBy(desc(events.eventDate));
+
+  const result = await Promise.all(
+    allEvents.map(async (event) => {
+      const eventRuns = await db.select().from(runs).where(eq(runs.eventId, event.eventId!));
+      return { ...event, runCount: eventRuns.length };
+    }),
+  );
+
+  return result;
+}
+
+export async function getEvent(id: number) {
+  const db = getDb();
+
+  const [event] = await db.select().from(events).where(eq(events.eventId, id));
+  if (!event) {
+    throw new Error(`Event not found: ${id}`);
+  }
+
+  return event;
+}
+
+export async function updateEvent(id: number, input: unknown) {
+  const parsed = eventInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Invalid event data: ${parsed.error.message}`);
+  }
+
+  const data = parsed.data;
+  const db = getDb();
+
+  // Check event exists
+  const [current] = await db.select().from(events).where(eq(events.eventId, id));
+  if (!current) {
+    throw new Error(`Event not found: ${id}`);
+  }
+
+  // Check natural key uniqueness (excluding current event)
+  const matches = await db.select().from(events).where(eq(events.eventDate, data.eventDate));
+  if (naturalKeyConflict(matches, id, data.track, data.sessionLabel)) {
+    throw new Error(
+      `Duplicate event: ${data.eventDate}, ${data.track}, ${data.sessionLabel ?? "(no session)"}`,
+    );
+  }
+
+  const [updated] = await db.update(events).set(data).where(eq(events.eventId, id)).returning();
+
+  return updated;
+}
+
+export async function deleteEvent(id: number) {
+  const db = getDb();
+
+  // Safety check: block if runs reference this event
+  const eventRuns = await db.select().from(runs).where(eq(runs.eventId, id));
+  if (eventRuns.length > 0) {
+    throw new Error(`Cannot delete event ${id}: ${eventRuns.length} run(s) reference this event`);
+  }
+
+  const [deleted] = await db.delete(events).where(eq(events.eventId, id)).returning();
+  if (!deleted) {
+    throw new Error(`Event not found: ${id}`);
+  }
+
+  return deleted;
+}
