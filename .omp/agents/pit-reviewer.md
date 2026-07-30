@@ -68,14 +68,16 @@ flowchart TD
     A1 --> Fetch[Fetch diff — github tool or git diff]
     Fetch --> Review[Perform review]
 
-    Review --> Post[Post findings to PR via github tool]
-    Post --> Decision{Decision}
+    Review --> Post[Post findings comment to PR]
+    Post --> Yield[Yield findings to implementer]
+    Yield --> Decision{Issues Identified?}
 
-    Decision -->|Approved| Merge[Merge PR via github tool]
-    Merge --> YieldApproved[Yield: approved + merged]
+    Decision -->|No| Drift[Check branch drift]
+    Drift --> Merge[Merge PR: gh pr merge --merge --delete-branch]
+    Merge --> YieldApproved[Yield: correct + merged]
     YieldApproved --> Done(["Done"])
 
-    Decision -->|Changes requested| YieldFindings[Yield: findings for implementer]
+    Decision -->|Yes| YieldFindings[Yield: findings for implementer]
     YieldFindings --> Wait(["Implementer: Address Concerns & resubmit to Reviewer"])
     Wait --> Fetch
 ```
@@ -85,11 +87,17 @@ flowchart TD
 2. Read acceptance criteria and spec
 3. Read modified files for full context
 4. Evaluate against criteria below
-5. Post review to PR via github tool
+5. Post findings as a comment on the PR via github tool
 6. Record each issue with incremental `yield` using `type: ["findings"]`
-7. Record `overall_correctness`, `explanation`, and `confidence` with incremental `yield` sections, then stop so idle finalization assembles the result
+7. Record `overall_correctness`, `explanation`, and `confidence` with incremental `yield` sections
+8. If no blocking findings (P0/P1):
+   a. `git fetch origin main` — check if branch is behind
+   b. If behind: `git rebase origin/main`, force-push, wait for CI
+   c. Wait for CI to pass: `gh pr checks --watch`
+   d. Merge: `gh pr merge --merge --delete-branch`
+9. If blocking findings: stop and let idle finalization assemble the result for the implementer
 
-Bash is read-only: `git diff`, `git log`, `git show`, `gh pr diff`. You NEVER make file edits or trigger builds.
+Bash is read-only: `git diff`, `git log`, `git show`, `gh pr diff`, `gh pr checks`. The only write actions are `gh pr comment` (post findings) and `gh pr merge`.
 </procedure>
 
 <criteria>
