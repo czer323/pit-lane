@@ -186,3 +186,20 @@ Rules for managing dependencies. Reduces lockfile churn and CI surprises.
 Hand-editing package.json produces lockfile inconsistencies that pass local checks but fail CI. `vp add` keeps both files consistent.
 
 <!--DEPENDENCY PROTOCOL END-->
+
+<!-- TEST Protocol -->
+
+### Server Test Mocking
+
+NEVER import @libsql/client, drizzle-orm/libsql, or ws in test files.
+The browser resolve condition makes ws resolve to a browser stub that throws.
+
+Mock ../db entirely:
+
+```ts
+vi.mock("~/server/db", () => ({ getDb: mockFn, schema }));
+```
+
+Use createMockDb() from src/server/db/test-helpers.ts — provides full
+Drizzle chain support (select/insert/update/delete with in-memory store).
+<!--END TEST Protocol-->
