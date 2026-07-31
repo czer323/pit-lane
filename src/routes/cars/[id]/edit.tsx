@@ -2,7 +2,7 @@ import { Title } from "@solidjs/meta";
 import { A, useNavigate } from "@solidjs/router";
 import { createSignal, Show, createResource, Suspense } from "solid-js";
 import { getCar, updateCar } from "~/server/api/cars";
-import "./form.css";
+import "../form.css";
 
 export default function EditCar(props: { id: string }) {
   const navigate = useNavigate();
