@@ -44,6 +44,30 @@ export interface RunResult {
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
+const NULLABLE_FIELDS = [
+  "lane",
+  "carVersionId",
+  "round",
+  "rt",
+  "sixtyFt",
+  "three30Ft",
+  "mph",
+  "dialIn",
+  "win",
+  "temperatureF",
+  "humidityPct",
+  "comments",
+] as const;
+
+/** Fill undefined nullable fields with null. */
+function normalizeNulls(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...obj };
+  for (const f of NULLABLE_FIELDS) {
+    if (out[f] === undefined) out[f] = null;
+  }
+  return out;
+}
+
 /**
  * Fetch all cars and snapshots once, then enrich a list of runs with
  * car name and snapshot info.
@@ -102,27 +126,9 @@ export async function createRun(input: unknown): Promise<RunResult> {
   // Build snapshot map if carVersionId is present
   const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
 
-  // Normalize — ensure nullable fields are null, not undefined (selectRunSchema is strict)
-  const nullableFields = [
-    "lane",
-    "carVersionId",
-    "round",
-    "rt",
-    "sixtyFt",
-    "three30Ft",
-    "mph",
-    "dialIn",
-    "win",
-    "temperatureF",
-    "humidityPct",
-    "comments",
-  ] as const;
-  const syntheticRun: Record<string, unknown> = { runId: 0, ...data };
-  for (const f of nullableFields) {
-    if (syntheticRun[f] === undefined) {
-      syntheticRun[f] = null;
-    }
-  }
+  // Normalize nulls for validateRun and DB insert
+  const normalized = normalizeNulls(data as Record<string, unknown>);
+  const syntheticRun = { ...normalized, runId: 0 };
 
   // Use validateRun for domain enforcement + warnings
   const validated = validateRun(syntheticRun, snapshots);
@@ -130,8 +136,9 @@ export async function createRun(input: unknown): Promise<RunResult> {
     throw new Error(`Invalid run data: ${validated.errors.message}`);
   }
 
-  // Insert using the input-parsed data (validateRun already confirmed validity)
-  const [created] = await db.insert(runs).values(data).returning();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db2 = db as any;
+  const [created] = await db2.insert(runs).values(normalized).returning();
 
   const [enriched] = await enrichRuns(db, [created]);
   return { run: enriched, warnings: validated.warnings };
@@ -192,27 +199,9 @@ export async function updateRun(id: number, input: unknown): Promise<RunResult> 
   // Build snapshot map if carVersionId is present
   const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
 
-  // Normalize — ensure nullable fields are null, not undefined (selectRunSchema is strict)
-  const nullableFields = [
-    "lane",
-    "carVersionId",
-    "round",
-    "rt",
-    "sixtyFt",
-    "three30Ft",
-    "mph",
-    "dialIn",
-    "win",
-    "temperatureF",
-    "humidityPct",
-    "comments",
-  ] as const;
-  const syntheticRun: Record<string, unknown> = { runId: id, ...data };
-  for (const f of nullableFields) {
-    if (syntheticRun[f] === undefined) {
-      syntheticRun[f] = null;
-    }
-  }
+  // Normalize nulls for validateRun and DB update
+  const normalized = normalizeNulls(data as Record<string, unknown>);
+  const syntheticRun = { ...normalized, runId: id };
 
   // Use validateRun for domain enforcement + warnings
   const validated = validateRun(syntheticRun, snapshots);
@@ -220,8 +209,9 @@ export async function updateRun(id: number, input: unknown): Promise<RunResult> 
     throw new Error(`Invalid run data: ${validated.errors.message}`);
   }
 
-  // Update using the input-parsed data (validateRun already confirmed validity)
-  const [updated] = await db.update(runs).set(data).where(eq(runs.runId, id)).returning();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db2 = db as any;
+  const [updated] = await db2.update(runs).set(normalized).where(eq(runs.runId, id)).returning();
 
   const [enriched] = await enrichRuns(db, [updated]);
   return { run: enriched, warnings: validated.warnings };
