@@ -1,6 +1,6 @@
 import { Title } from "@solidjs/meta";
 import { A, useNavigate } from "@solidjs/router";
-import { For, Show, createResource, createSignal, Suspense } from "solid-js";
+import { createEffect, For, Show, createResource, createSignal, Suspense } from "solid-js";
 import { getEvent } from "~/server/api/events";
 import { listCars } from "~/server/api/cars";
 import { getRun, updateRun } from "~/server/api/runs";
@@ -16,6 +16,13 @@ export default function EditRun(props: { eventId: string; runId: string }) {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [warnings, setWarnings] = createSignal<ValidationWarning[]>([]);
+  const [sessionType, setSessionType] = createSignal("Practice");
+
+  // Sync sessionType once the run loads so the round field shows/hides correctly
+  createEffect(() => {
+    const r = run();
+    if (r) setSessionType(r.sessionType ?? "Practice");
+  });
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -116,20 +123,22 @@ export default function EditRun(props: { eventId: string; runId: string }) {
 
               <label>
                 Session Type
-                <select name="sessionType">
-                  <option value="Practice" selected={r().sessionType === "Practice"}>
-                    Practice
-                  </option>
-                  <option value="Elimination" selected={r().sessionType === "Elimination"}>
-                    Elimination
-                  </option>
+                <select
+                  name="sessionType"
+                  value={sessionType()}
+                  onChange={(e) => setSessionType(e.currentTarget.value)}
+                >
+                  <option value="Practice">Practice</option>
+                  <option value="Elimination">Elimination</option>
                 </select>
               </label>
 
-              <label>
-                Round
-                <input name="round" type="number" min="1" value={r().round ?? ""} />
-              </label>
+              <Show when={sessionType() === "Elimination"}>
+                <label>
+                  Round <span class="req">*</span>
+                  <input name="round" type="number" min="1" required value={r().round ?? ""} />
+                </label>
+              </Show>
 
               <label>
                 Lane

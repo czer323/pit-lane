@@ -69,10 +69,15 @@ export default function BatchEntry(props: { eventId: string }) {
 
     const allErrors: string[] = [];
     const allWarns: ValidationWarning[] = [];
+    const savedRowIds = new Set<number>();
 
     for (const row of rows()) {
       if (!row.carId || !row.et) {
         allErrors.push(`Row ${row.id}: car and ET are required.`);
+        continue;
+      }
+      if (row.sessionType === "Elimination" && !row.round) {
+        allErrors.push(`Row ${row.id}: round is required for Elimination.`);
         continue;
       }
       const input: Record<string, unknown> = {
@@ -93,6 +98,7 @@ export default function BatchEntry(props: { eventId: string }) {
       try {
         const result = await createRun(input);
         allWarns.push(...result.warnings);
+        savedRowIds.add(row.id);
       } catch (err) {
         allErrors.push(`Row ${row.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -101,6 +107,8 @@ export default function BatchEntry(props: { eventId: string }) {
     setAllWarnings(allWarns);
     if (allErrors.length > 0) {
       setError(allErrors.join("\n"));
+      // Drop already-saved rows so a retry does not insert duplicates
+      setRows((prev) => prev.filter((r) => !savedRowIds.has(r.id)));
     } else {
       navigate(`/races/${props.eventId}`);
     }
@@ -184,6 +192,7 @@ export default function BatchEntry(props: { eventId: string }) {
                     <input
                       type="number"
                       min="1"
+                      required
                       value={row.round}
                       onInput={(e) => updateRow(row.id, "round", e.currentTarget.value)}
                       style={{ width: "3rem" }}
