@@ -44,10 +44,14 @@ export default function QuickEntry(props: { eventId: string }) {
       setWarnings(result.warnings);
       // Reset form, keep car + event, ready for next lap (AC: minimal taps)
       form.reset();
-      // Restore carId from previous submission
+      // Re-apply signal-driven values after reset (selects reset to DOM defaults)
+      const sessionSelect = form.querySelector<HTMLSelectElement>("[name='sessionType']");
+      if (sessionSelect) {
+        sessionSelect.value = sessionType();
+      }
       const carSelect = form.querySelector<HTMLSelectElement>("[name='carId']");
-      if (carSelect) {
-        carSelect.value = input.carId != null ? String(input.carId as number) : "";
+      if (carSelect && input.carId != null) {
+        carSelect.value = String(input.carId as number);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

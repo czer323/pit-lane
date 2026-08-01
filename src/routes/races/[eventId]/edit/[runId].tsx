@@ -30,10 +30,21 @@ export default function EditRun(props: { eventId: string; runId: string }) {
         input[key] = null;
         continue;
       }
+      // win is a boolean column — convert "true"/"false" strings
+      if (key === "win") {
+        input[key] = value === "true";
+        continue;
+      }
       const num = Number(value);
       input[key] = Number.isNaN(num) ? value : num;
     }
     if (!input.sessionType) input.sessionType = "Practice";
+    // Practice runs cannot have round/dialIn/win — validateRun rejects them
+    if (input.sessionType === "Practice") {
+      delete input.round;
+      delete input.dialIn;
+      delete input.win;
+    }
     input.eventId = Number(props.eventId);
     try {
       const result = await updateRun(runId(), input);
