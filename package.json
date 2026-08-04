@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "start": "node .output/server/index.mjs",
+    "deploy:preview": "bash scripts/deploy-preview.sh",
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test",
