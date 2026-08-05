@@ -8,7 +8,8 @@
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

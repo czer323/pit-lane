@@ -17,7 +17,7 @@ Every behavior change to the mock (via annotation, direct edit, or review) MUST:
 1. Update this spec (behavior + assertions).
 2. Update `tests/mocked-ui/track-entry-behavior.spec.ts` to assert the new behavior.
 3. Run the suite — green before the change ships:
-   `node node_modules/@playwright/test/cli.js test` (repo root)
+   `vp run test:e2e` (repo root)
 
 ## Behavior contracts
 
