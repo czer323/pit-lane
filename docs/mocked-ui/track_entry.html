@@ -1326,11 +1326,11 @@
                 <button class="env-btn" onclick="adjustTemp(1)">&#43;</button>
               </div>
               <div class="env-group">
-                <button class="env-btn" onclick="adjustHumidity(-5)">&#8722;</button>
+                <button class="env-btn" onclick="adjustHumidity(-1)">&#8722;</button>
                 <span class="env-val" id="displayHumidity" onclick="editEnvValue('humidity_pct')"
                   >45%</span
                 >
-                <button class="env-btn" onclick="adjustHumidity(5)">&#43;</button>
+                <button class="env-btn" onclick="adjustHumidity(1)">&#43;</button>
               </div>
             </div>
           </div>
@@ -1355,8 +1355,8 @@
         <button class="submit-btn" id="submitBtn" onclick="submitRun()">Submit Pass</button>
         <div class="last-run-bar" id="lastRunBar"></div>
         <div class="hotkey-hint">
-          Tab down &middot; Enter to submit &middot; Lane flips automatically &middot; Green border
-          = selected for elims
+          Tab down &middot; Enter to submit &middot; Lane auto-flips per car in Practice &middot;
+          Green border = selected for elims
         </div>
       </div>
       <div class="tab-pane" id="tabLog">
@@ -1985,6 +1985,9 @@
 
       function selectCar(id) {
         state.selectedCarId = id;
+        if (state.currentSession === "Practice") {
+          setLane(nextPracticeLaneFor(id));
+        }
         document.querySelectorAll(".car-chip").forEach((b) => {
           b.classList.toggle("active", parseInt(b.dataset.carId) === id);
         });
@@ -2002,6 +2005,15 @@
           if (b.dataset.lane === lane)
             b.classList.add(lane === "Left" ? "active-lane-left" : "active-lane-right");
         });
+      }
+
+      // Practice lanes alternate per car: next run is the opposite of the car's last practice lane.
+      function nextPracticeLaneFor(carId) {
+        const last = [...state.runs]
+          .reverse()
+          .find((r) => r.car_id === carId && r.session_type === "Practice");
+        if (!last || !last.lane) return "Left";
+        return last.lane === "Left" ? "Right" : "Left";
       }
 
       function setSession(type) {
@@ -2165,8 +2177,10 @@
         const sessionInput = document.getElementById("inputSession");
         if (sessionInput) sessionInput.value = "";
 
-        // Auto-toggle lane
-        setLane(state.currentLane === "Left" ? "Right" : "Left");
+        // Practice: this car's next run goes to the opposite lane. Elim lane is the user's choice.
+        if (state.currentSession === "Practice") {
+          setLane(nextPracticeLaneFor(car.id));
+        }
 
         updateEventBar();
         updateFeed();
@@ -2730,8 +2744,8 @@
         updateEnvDisplay();
       }
       const ENV_LIMITS = {
-        temperature_f: { min: 50, max: 110, suffix: "\u00b0F" },
-        humidity_pct: { min: 10, max: 90, suffix: "%" },
+        temperature_f: { min: -40, max: 200, suffix: "\u00b0F" },
+        humidity_pct: { min: 0, max: 100, suffix: "%" },
       };
       function editEnvValue(key) {
         const span = document.getElementById(

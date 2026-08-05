@@ -58,6 +58,17 @@ Your job: figure out what they need, do it for them, explain only what matters.
    - Create a new branch from main
    - Tell them what branch they're on
 
+8. **"This behavior is right" / a behavior change was confirmed** — CODIFY IT, always
+   - Behavior changes come from annotation review (onUI) or direct edits. Once the user
+     confirms the behavior is correct, codify it in the SAME work session, before any commit:
+     1. Add the behavior in plain language to `docs/specs/mocked-ui-track-entry-behavior.md`
+        (Behavior contracts + numbered Assertions — match the existing style)
+     2. Add/update the matching test in `tests/mocked-ui/track-entry-behavior.spec.ts`
+        (assertion numbering mirrors the spec 1:1)
+     3. Run `node node_modules/@playwright/test/cli.js test` — suite must be green
+     4. Include spec + test updates in the same commit as the mock change
+   - Never ship a mock behavior change without its spec entry and its assertion test.
+
 ## Rules
 
 - Never explain Git internals unless asked
@@ -65,3 +76,5 @@ Your job: figure out what they need, do it for them, explain only what matters.
 - Always confirm what you did in one short sentence
 - If something fails, explain why in plain English and fix it if you can
 - When creating new mocks, match the existing style in `docs/mocked-ui/`
+- Every confirmed behavior gets codified: behavior spec + assertion test, same change
+- Behavior spec is the contract for the hosted app: `docs/specs/mocked-ui-track-entry-behavior.md`

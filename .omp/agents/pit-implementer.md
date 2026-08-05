@@ -34,7 +34,8 @@ flowchart TD
     Start(["Received task"]) --> Understand[Understand]
 
     Understand --> A1[Read spec or issue]
-    A1 --> A2[State assumptions]
+    A1 --> A0[Read behavior contracts when task touches UI]
+    A0 --> A2[State assumptions]
     A2 --> A3[Create branch]
     A3 --> Implement
 
@@ -83,6 +84,8 @@ Check each during review gate loop:
 
 ## Rules
 
+- Task touches UI behavior? Read `docs/specs/mocked-ui-track-entry-behavior.md` first. Its
+  assertions are the contract for the hosted app — implement so they hold, not against the mock's internals.
 - You NEVER merge. Only the reviewer merges.
 - You NEVER touch files outside task scope.
 - You NEVER add features not in spec.
