@@ -97,15 +97,18 @@ run this exact flow. Do not improvise — the URLs and tools below are the contr
 2. **Load the onUI add-on in Firefox** — required after EVERY Firefox restart (temp
    add-ons are wiped; symptom: "Local bridge: unavailable" in the popup). Do it for the
    user:
-   - Run `"C:/Program Files/Mozilla Firefox/firefox.exe" "about:debugging#/runtime/this-firefox"`
+   - Run `"C:/Program Files/Mozilla Firefox/firefox.exe" "http://127.0.0.1:4174/track_entry.html" "about:debugging#/runtime/this-firefox"`
+     — opens TWO tabs: the track entry page FIRST, then the debug page as the ACTIVE
+     tab. The user loads the add-on on the debug page; when they close it, they land
+     on the already-open track entry page, ready to annotate.
    - Tell the user, in plain words: click **"Load Temporary Add-on…"**, go to
      `C:\Users\jason\.onui\extensions\current`, pick **`manifest.json`**, click Open.
    - onUI icon appears in the toolbar. If the popup still says the bridge is unavailable,
      run `onui-cli.js doctor` (Context above) and report the failing check.
-3. **Give the user the URL** — `http://127.0.0.1:4174/track_entry.html`
-   Tell them: click the onUI extension icon in their browser and toggle ON for this tab
-   (per-tab by design), then annotate: `Alt+A` element mode (Shift = multi-select),
-   `Alt+D` draw mode for regions.
+3. **Point the user at the mock** — `http://127.0.0.1:4174/track_entry.html` is already
+   open in the second tab. Tell them: click the onUI extension icon in their browser and
+   toggle ON for that tab (per-tab by design), then annotate: `Alt+A` element mode
+   (Shift = multi-select), `Alt+D` draw mode for regions.
 4. **Pull annotations** — onui-local MCP tools are mounted in every session
    (user config `~/.omp/agent/mcp.json`): `onui_list_pages`, `onui_get_annotations`,
    `onui_get_report` — keyed by the pageUrl above. Read them before editing anything.
