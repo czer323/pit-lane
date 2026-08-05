@@ -26,3 +26,11 @@ gitignore
 # System Files
 .DS_Store
 Thumbs.db
+
+# Local dev database (never commit)
+local.db
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/

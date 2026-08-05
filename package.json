@@ -8,7 +8,8 @@
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
@@ -22,12 +23,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^26.1.1",
     "drizzle-kit": "^0.31.10",
     "drizzle-zod": "^0.8.3",
+    "eslint-plugin-playwright": "^2.11.0",
     "eslint-plugin-solid": "^0.14.5",
     "jsdom": "^29.1.1",
     "vercel": "^57.0.0",

@@ -22,3 +22,10 @@ jobs:
       - run: vp check
 
       - run: vp test -- --run
+
+      # E2E gate: the mock UI behavior contract (SLOT-19). Playwright suite runs
+      # against the static mock served by scripts/serve-mocked-ui.mjs — no build
+      # needed. --with-deps installs the runner's system libraries.
+      - run: vp exec playwright install --with-deps chromium
+
+      - run: vp run test:e2e
