@@ -1,0 +1,3104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pit Sheet — Track Entry</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #0d0d0d;
+        color: #ccc;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        padding: 1rem;
+        max-width: 560px;
+        margin: 0 auto;
+      }
+
+      /* --- Top Row: Weather, Event, Cars, Pit Lane --- */
+      .top-row {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr auto;
+        grid-template-rows: 55px;
+        gap: 0.2rem;
+        margin-bottom: 0.25rem;
+      }
+      .top-section {
+        background: #161616;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 0.3rem 0.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.08rem;
+      }
+      .top-section .label {
+        font-size: 0.4rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #444;
+      }
+      .top-section .primary {
+        color: #f9a825;
+        font-weight: 600;
+        font-size: 0.65rem;
+      }
+      .top-section .secondary {
+        font-size: 0.5rem;
+        color: #888;
+      }
+      .top-section .top-row-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      /* Weather chip */
+      .top-section.weather-chip {
+        width: 95px;
+        flex-shrink: 0;
+        padding: 0 0.35rem 0.3rem;
+        gap: 0.05rem;
+        cursor: default;
+        user-select: none;
+        pointer-events: none;
+      }
+      .weather-chip .wc-temp {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #f9a825;
+      }
+      .weather-chip .wc-row {
+        font-size: 0.5rem;
+        color: #888;
+        line-height: 1.2;
+      }
+      .weather-chip .wc-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .weather-chip .wc-bot {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex: 1;
+      }
+      .weather-chip .wc-label {
+        font-size: 0.35rem;
+        color: #888;
+        letter-spacing: 0.04em;
+        line-height: 1;
+      }
+      .weather-chip .wc-icon {
+        opacity: 0.5;
+      }
+      .weather-chip .wc-precip {
+        text-align: right;
+      }
+      .precip-label {
+        display: none;
+      }
+      .wc-cloud {
+        font-size: 1.4rem;
+        opacity: 0.45;
+      }
+      .wc-humidity-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .wc-precip-block {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .top-section.event-chip {
+        padding: 0.16rem 0.25rem;
+        position: relative;
+      }
+      .event-chip .top-row-inner {
+        flex: 1;
+        align-items: stretch;
+      }
+      /* Event chip */
+      .top-section .event-weather {
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .top-section .event-weather .ew-temp {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #f9a825;
+      }
+      .top-section .event-weather .ew-humidity {
+        font-size: 0.45rem;
+        color: #888;
+      }
+      .top-section .event-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        align-self: stretch;
+      }
+      .top-section .event-buttons button {
+        background: none;
+        border: 1px solid #f9a82544;
+        color: #f9a825;
+        border-radius: 4px;
+        padding: 0.1rem 0.45rem;
+        font-size: 0.55rem;
+        line-height: 1.1;
+        cursor: pointer;
+        transition: all 0.12s;
+        flex: 1;
+      }
+      .top-section .event-buttons button:hover {
+        border-color: #f9a825;
+        background: #1e1a0a;
+      }
+      .top-section .action-btn.primary-btn {
+        border-color: #f9a82544;
+        color: #f9a825;
+      }
+      .top-section .action-btn.primary-btn:hover {
+        border-color: #f9a825;
+      }
+
+      /* --- Car Selector (2x4 grid, fills width) --- */
+      .car-strip {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+        padding: 0 0 0.5rem 0;
+        margin-bottom: 0.5rem;
+      }
+
+      .car-chip {
+        background: #161616;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 0.3rem 0.4rem;
+        cursor: pointer;
+        transition: all 0.12s;
+        position: relative;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto auto;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+          "thumb info  runs  dialL dialR"
+          "thumb best  .     bestL bestR";
+        gap: 0.1rem 0.3rem;
+        align-items: start;
+      }
+      .car-chip:active {
+        transform: scale(0.96);
+      }
+      .car-chip .thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 5px;
+        flex-shrink: 0;
+        background: #0d0d0d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid #2a2a2a;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        grid-area: thumb;
+      }
+      .car-chip .thumb:hover {
+        border-color: #f9a825;
+      }
+      .car-chip .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .car-chip .thumb svg {
+        width: 18px;
+        height: 18px;
+        opacity: 0.25;
+      }
+      .car-chip .chip-info {
+        grid-area: info;
+        min-width: 0;
+        text-align: left;
+        align-self: center;
+      }
+      .car-chip .chip-name {
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #999;
+      }
+      .car-chip .chip-spec {
+        font-size: 0.5rem;
+        color: #888;
+        margin-top: 0.05rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .car-chip .chip-runs {
+        grid-area: runs;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        align-self: center;
+      }
+      .car-chip .chip-runs .runs-label {
+        font-size: 0.35rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        line-height: 1.1;
+      }
+      .car-chip .chip-runs .runs-num {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #f9a825;
+        line-height: 1.2;
+      }
+      .car-chip .dial-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.05rem;
+        min-width: 48px;
+      }
+      .car-chip .dial-box-l {
+        grid-area: dialL;
+        color: #ab47bc;
+      }
+      .car-chip .dial-box-r {
+        grid-area: dialR;
+        color: #ef5350;
+      }
+      .car-chip .dial-box-label {
+        font-size: 0.35rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        opacity: 0.7;
+      }
+      .car-chip .dial-box-val {
+        font-size: 0.65rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .car-chip .dial-box-btns {
+        display: flex;
+        gap: 0.1rem;
+      }
+      .car-chip .dial-box-btns .dial-adj {
+        background: none;
+        border: 1px solid #333;
+        color: #666;
+        border-radius: 2px;
+        padding: 0 0.25rem;
+        font-size: 0.45rem;
+        cursor: pointer;
+        line-height: 1.3;
+        min-width: 18px;
+        text-align: center;
+      }
+      .car-chip .dial-box-btns .dial-adj:hover {
+        border-color: #f9a825;
+        color: #f9a825;
+      }
+      .car-chip .chip-best {
+        grid-area: best;
+        font-size: 0.5rem;
+        color: #f9a825;
+        align-self: center;
+      }
+      .car-chip .chip-best-l {
+        grid-area: bestL;
+        font-size: 0.5rem;
+        color: #ab47bc;
+        text-align: center;
+        align-self: center;
+      }
+      .car-chip .chip-best-r {
+        grid-area: bestR;
+        font-size: 0.5rem;
+        color: #ef5350;
+        text-align: center;
+        align-self: center;
+      }
+      .car-chip.active {
+        border-color: #f9a825;
+        background: #1e1a0a;
+      }
+      .car-chip.active .chip-name {
+        color: #f9a825;
+      }
+      .car-chip.elim-select {
+        border-left: 3px solid #66bb6a;
+      }
+      .car-chip.elim-select .chip-name {
+        color: #a5d6a7;
+      }
+
+      /* --- Entry Form --- */
+      .entry-card {
+        background: #161616;
+        border: 1px solid #2a2a2a;
+        border-radius: 10px;
+        padding: 0.7rem;
+        margin-bottom: 0.6rem;
+      }
+      .entry-row {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 0.4rem;
+      }
+      .entry-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .entry-toggle-group {
+        display: flex;
+        gap: 0.3rem;
+        flex: 1;
+      }
+      .toggle-btn {
+        flex: 1;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 0.45rem 0.3rem;
+        text-align: center;
+        cursor: pointer;
+        font-size: 0.65rem;
+        color: #666;
+        transition: all 0.12s;
+      }
+      .toggle-btn.active-lane-left {
+        border-color: #ab47bc;
+        color: #ab47bc;
+        background: #1e0d22;
+      }
+      .toggle-btn.active-lane-right {
+        border-color: #ef5350;
+        color: #ef5350;
+        background: #2a0d0d;
+      }
+      .toggle-btn.active-session {
+        border-color: #f9a825;
+        color: #f9a825;
+        background: #1e1a0a;
+      }
+      #roundField {
+        display: none;
+      }
+      #roundField #roundLabel {
+        font-size: 0.65rem;
+        color: #f9a825;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      /* --- Vertical field layout: label left, input right --- */
+      .field-stack {
+        margin: 0.5rem 0;
+      }
+      .field-row {
+        display: flex;
+        align-items: center;
+        padding: 0.2rem 0;
+        border-bottom: 1px solid #1a1a1a;
+      }
+      .field-row:last-child {
+        border-bottom: none;
+      }
+      .field-row label {
+        flex: 0 0 120px;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        font-weight: 500;
+      }
+      .field-row input {
+        flex: 1;
+        background: #0d0d0d;
+        border: 1px solid #2a2a2a;
+        border-radius: 5px;
+        padding: 0.45rem 0.6rem;
+        color: #fff;
+        font-size: 0.85rem;
+        font-family: "Courier New", monospace;
+        outline: none;
+        transition: border-color 0.12s;
+        text-align: right;
+      }
+      .field-row input:focus {
+        border-color: #f9a825;
+      }
+      .field-row input::placeholder {
+        color: #2a2a2a;
+      }
+      .field-row input.red-input {
+        color: #e53935;
+      }
+
+      .field-row.comment-row input {
+        text-align: left;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        font-size: 0.75rem;
+      }
+      .field-row.comment-row label {
+        color: #444;
+      }
+
+      /* --- Environment controls --- */
+      .field-row.env-row label {
+        color: #444;
+      }
+      .env-controls {
+        display: flex;
+        gap: 0.6rem;
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .env-group {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #0d0d0d;
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+        padding: 0.15rem;
+      }
+      .env-btn {
+        background: none;
+        border: none;
+        color: #555;
+        font-size: 0.8rem;
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 3px;
+        transition: all 0.1s;
+      }
+      .env-btn:active {
+        background: #2a2a2a;
+        color: #f9a825;
+      }
+      .env-val {
+        font-family: "Courier New", monospace;
+        font-size: 0.75rem;
+        color: #f9a825;
+        min-width: 40px;
+        text-align: center;
+        cursor: pointer;
+        padding: 0.1rem 0.2rem;
+        border-radius: 3px;
+        transition: background 0.1s;
+      }
+      .env-val:active {
+        background: #2a2a2a;
+      }
+
+      .submit-btn {
+        width: 100%;
+        background: #f9a825;
+        border: none;
+        border-radius: 8px;
+        padding: 0.7rem;
+        color: #0d0d0d;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.12s;
+        margin-top: 0.4rem;
+      }
+      .submit-btn:active {
+        background: #d48a1a;
+      }
+      .submit-btn:disabled {
+        background: #333;
+        color: #555;
+        cursor: not-allowed;
+      }
+
+      .wl-toggle {
+        display: flex;
+        gap: 0.3rem;
+        flex: 1;
+      }
+      .wl-opt {
+        flex: 1;
+        text-align: center;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.12s;
+        user-select: none;
+      }
+      .wl-opt[data-wl="win"] {
+        border: 1px solid #2e7d32;
+        color: #a5d6a7;
+      }
+      .wl-opt[data-wl="win"].wl-active {
+        background: #1b5e20;
+        color: #fff;
+      }
+      .wl-opt[data-wl="loss"] {
+        border: 1px solid #c62828;
+        color: #ef9a9a;
+      }
+      .wl-opt[data-wl="loss"].wl-active {
+        background: #b71c1c;
+        color: #fff;
+      }
+
+      .last-run-bar {
+        font-size: 0.6rem;
+        color: #555;
+        text-align: center;
+        padding: 0.25rem 0 0 0;
+      }
+      .last-run-bar strong {
+        color: #888;
+      }
+
+      .hotkey-hint {
+        font-size: 0.5rem;
+        color: #2a2a2a;
+        text-align: center;
+        margin-top: 0.25rem;
+      }
+      .tab-bar {
+        display: flex;
+        gap: 0;
+        margin-bottom: 0.3rem;
+        border-bottom: 1px solid #2a2a2a;
+      }
+      .tab-bar .tab {
+        flex: 1;
+        text-align: center;
+        padding: 0.3rem 0;
+        font-size: 0.55rem;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition:
+          color 0.12s,
+          background 0.12s;
+        border-radius: 4px 4px 0 0;
+        user-select: none;
+      }
+      .tab-bar .tab:hover {
+        color: #888;
+        background: #1e1a0a;
+      }
+      .tab-bar .tab.active {
+        color: #0d0d0d;
+        background: #f9a825;
+        font-weight: 600;
+      }
+      .tab-pane {
+        display: none;
+        flex-direction: column;
+        gap: inherit;
+      }
+      .tab-pane.active {
+        display: flex;
+      }
+
+      /* --- Runs Feed --- */
+      .feed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.4rem;
+      }
+      .feed-header h3 {
+        font-size: 0.6rem;
+        color: #555;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .lane-compare {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.25rem 0.3rem;
+        margin-bottom: 0.35rem;
+        background: #111;
+        border-radius: 5px;
+        border: 1px solid #1e1e1e;
+        font-size: 0.5rem;
+        gap: 0.3rem;
+      }
+      .lane-compare .lc-left {
+        color: #ab47bc;
+      }
+      .lane-compare .lc-right {
+        color: #ef5350;
+      }
+      .lane-compare .lc-diff {
+        color: #f9a825;
+        font-weight: 600;
+      }
+      .lane-compare .lc-label {
+        color: #555;
+      }
+      .feed-header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .feed-header-right .count {
+        font-size: 0.55rem;
+        color: #444;
+      }
+      .clear-btn {
+        background: none;
+        border: 1px solid #2a2a2a;
+        color: #555;
+        border-radius: 3px;
+        padding: 0.15rem 0.4rem;
+        font-size: 0.5rem;
+        cursor: pointer;
+      }
+      .clear-btn:hover {
+        border-color: #444;
+        color: #888;
+      }
+
+      .feed-scroll {
+        max-height: 260px;
+        overflow-y: auto;
+      }
+
+      .run-row {
+        display: grid;
+        grid-template-columns: 28px 60px 38px 62px 60px 60px 1fr 44px;
+        gap: 0.25rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #1a1a1a;
+        font-size: 0.6rem;
+        align-items: center;
+      }
+      .run-row.header {
+        color: #444;
+        font-size: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom-color: #2a2a2a;
+      }
+      .run-row.header div {
+        color: #444;
+      }
+      .run-row .r-id {
+        color: #f9a825;
+        font-weight: 600;
+      }
+      .run-row .r-car {
+        color: #ddd;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .run-row .r-lane {
+        font-size: 0.5rem;
+        text-transform: uppercase;
+      }
+      .run-row .r-lane.left {
+        color: #ab47bc;
+      }
+      .run-row .r-lane.right {
+        color: #ef5350;
+      }
+      .run-row .r-type {
+        color: #555;
+        font-size: 0.5rem;
+      }
+      .run-row .r-val {
+        color: #ddd;
+        font-family: "Courier New", monospace;
+      }
+      .run-row .r-red {
+        color: #e53935 !important;
+      }
+      .run-row .r-breakout {
+        color: #fdd835 !important;
+      }
+      .run-row .r-anom {
+        color: #ff8f00 !important;
+      }
+      .run-row .r-note {
+        color: #444;
+        font-size: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .run-row .r-actions {
+        display: flex;
+        gap: 0.1rem;
+      }
+      .run-row .r-actions button {
+        background: none;
+        border: none;
+        color: #555;
+        cursor: pointer;
+        font-size: 0.55rem;
+        padding: 0 0.15rem;
+        line-height: 1;
+      }
+      .run-row .r-actions button:hover {
+        color: #f9a825;
+      }
+      .run-row .r-actions .act-del:hover {
+        color: #e53935;
+      }
+
+      .empty-feed {
+        text-align: center;
+        color: #333;
+        font-size: 0.65rem;
+        padding: 1.2rem 0;
+      }
+      .empty-feed span {
+        font-size: 1.2rem;
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+
+      /* --- Modals --- */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+      }
+      .modal-overlay.show {
+        display: flex;
+      }
+      .modal {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1.1rem;
+        width: 90%;
+        max-width: 380px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .modal h3 {
+        color: #f9a825;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-bottom: 0.6rem;
+      }
+      .modal .field-group {
+        margin-bottom: 0.4rem;
+      }
+      .modal .field-group label {
+        display: block;
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        margin-bottom: 0.15rem;
+      }
+      .modal .field-group input,
+      .modal .field-group select {
+        width: 100%;
+        background: #0d0d0d;
+        border: 1px solid #2a2a2a;
+        border-radius: 5px;
+        padding: 0.45rem 0.5rem;
+        color: #fff;
+        font-size: 0.8rem;
+        outline: none;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      .modal .field-group input:focus,
+      .modal .field-group select:focus {
+        border-color: #f9a825;
+      }
+      .modal .field-row {
+        display: flex;
+        gap: 0.35rem;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+      }
+      .modal-actions button {
+        flex: 1;
+        padding: 0.45rem;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.7rem;
+      }
+      .modal-actions .save-btn {
+        background: #f9a825;
+        color: #0d0d0d;
+        font-weight: 600;
+      }
+      .modal-actions .cancel-btn {
+        background: #2a2a2a;
+        color: #888;
+      }
+
+      .car-list-modal .modal {
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh;
+        overflow: hidden;
+      }
+      .car-list-modal #carManagerList {
+        flex: 1;
+        overflow-y: auto;
+        margin: 0.4rem 0;
+      }
+      .car-list-modal .car-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #1a1a1a;
+      }
+      .car-list-modal .car-list-item:last-child {
+        border-bottom: none;
+      }
+      .car-list-modal .car-list-item .info .name {
+        font-size: 0.75rem;
+        color: #ddd;
+      }
+      .car-list-modal .car-list-item .info .detail {
+        font-size: 0.55rem;
+        color: #555;
+      }
+      .car-list-modal .car-list-item .at-track {
+        background: none;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.55rem;
+        cursor: pointer;
+        color: #666;
+        transition: all 0.12s;
+      }
+      .car-list-modal .car-list-item .at-track.active {
+        border-color: #f9a825;
+        color: #f9a825;
+        background: #1e1a0a;
+      }
+      .car-list-modal .car-list-item .remove {
+        background: none;
+        border: none;
+        color: #444;
+        cursor: pointer;
+        font-size: 0.8rem;
+        padding: 0.2rem;
+      }
+      .car-list-modal .car-list-item .remove:hover {
+        color: #e53935;
+      }
+      .add-car-form {
+        display: flex;
+        gap: 0.3rem;
+        margin-top: 0.5rem;
+      }
+      .add-car-form input {
+        flex: 1;
+        background: #0d0d0d;
+        border: 1px solid #2a2a2a;
+        border-radius: 5px;
+        padding: 0.4rem 0.5rem;
+        color: #fff;
+        font-size: 0.75rem;
+        outline: none;
+      }
+      .add-car-form input:focus {
+        border-color: #f9a825;
+      }
+      .add-car-form button {
+        background: #f9a825;
+        border: none;
+        border-radius: 5px;
+        padding: 0.4rem 0.7rem;
+        color: #0d0d0d;
+        font-weight: 600;
+        font-size: 0.7rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .track-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        transition: color 0.12s;
+      }
+      .track-chip:hover {
+        color: #f9a825;
+      }
+      .track-chip::after {
+        content: "\25BE";
+        font-size: 0.5rem;
+        color: #555;
+      }
+      .track-notes-line {
+        font-size: 0.45rem;
+        color: #555;
+        margin-top: 0.02rem;
+        line-height: 1.15;
+      }
+      .pit-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f9a825;
+        border: none;
+        border-radius: 8px;
+        padding: 0 1.25rem;
+        color: #0d0d0d;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.12s;
+        white-space: nowrap;
+      }
+      .pit-chip:hover {
+        background: #d48a1a;
+      }
+      .pit-chip .plus {
+        font-size: 1.4rem;
+        line-height: 1.1;
+      }
+      .pit-chip .label {
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+      .event-date {
+        font-size: 0.5rem;
+        color: #888;
+        font-weight: 400;
+      }
+      .event-stats {
+        font-size: 0.45rem;
+        color: #f9a825;
+        position: absolute;
+        bottom: 0.16rem;
+        left: 0.25rem;
+      }
+      .section-divider {
+        border: none;
+        border-top: 1px solid #2a2a2a;
+        margin: 0.5rem 0;
+      }
+      .session-filters {
+        display: flex;
+        gap: 0.2rem;
+        padding: 0.2rem 0.6rem;
+        overflow-x: auto;
+        flex-wrap: wrap;
+      }
+      .session-filters .sf-btn {
+        background: none;
+        border: 1px solid #2a2a2a;
+        border-radius: 4px;
+        padding: 0.1rem 0.35rem;
+        font-size: 0.5rem;
+        color: #555;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .session-filters .sf-btn.active {
+        border-color: #f9a825;
+        color: #f9a825;
+        background: #1e1a0a;
+      }
+      .run-search {
+        width: 100%;
+        margin: 0.3rem 0;
+        padding: 0.25rem 0.4rem;
+        background: #111;
+        border: 1px solid #2a2a2a;
+        border-radius: 4px;
+        color: #ccc;
+        font-size: 0.55rem;
+        outline: none;
+      }
+      .run-search:focus {
+        border-color: #f9a825;
+      }
+
+      @media (max-width: 600px) {
+        .top-row {
+          grid-template-columns: auto 1fr auto;
+          grid-template-rows: 55px 55px;
+        }
+        .top-row .weather-chip {
+          grid-column: 1;
+          grid-row: 1 / 3;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto 1fr;
+          gap: 0;
+          align-items: center;
+        }
+        .top-row .weather-chip .wc-top {
+          display: contents;
+        }
+        .top-row .weather-chip .wc-bot {
+          display: contents;
+        }
+        .wc-cloud {
+          grid-column: 1 / 3;
+          grid-row: 1;
+          justify-self: center;
+          font-size: 2.5rem;
+        }
+        .weather-chip .wc-temp {
+          grid-column: 1;
+          grid-row: 2;
+          font-size: 1.5rem;
+          justify-self: start;
+        }
+        .wc-humidity-block {
+          grid-column: 2;
+          grid-row: 2;
+          justify-self: end;
+          align-items: flex-end;
+        }
+        .wc-precip-block {
+          grid-column: 1 / 3;
+          grid-row: 3;
+          justify-self: center;
+          flex-direction: row;
+          align-items: center;
+          gap: 0.2rem;
+        }
+        .precip-label {
+          display: block;
+        }
+        .top-row .event-chip {
+          grid-column: 2;
+          grid-row: 1;
+        }
+        .event-chip > .top-row-inner > div:first-child {
+          order: 1;
+        }
+        .event-chip .event-buttons {
+          order: -1;
+        }
+        .event-chip .primary {
+          display: flex;
+          gap: 0.25rem;
+          justify-content: flex-end;
+        }
+        .event-chip #displayDate {
+          order: 1;
+        }
+        .event-chip .primary::before {
+          content: "-";
+          order: 2;
+          font-weight: 600;
+          font-size: 0.65rem;
+          color: #f9a825;
+        }
+        .event-chip .track-chip {
+          order: 3;
+        }
+        .event-chip .track-chip::after {
+          display: none;
+        }
+        #trackNotesLine {
+          text-align: right;
+        }
+        .event-stats {
+          left: auto;
+          right: 0.25rem;
+        }
+        .top-row .cars-chip {
+          grid-column: 2;
+          grid-row: 2;
+        }
+        .top-row .pit-chip {
+          grid-column: 3;
+          grid-row: 1 / 3;
+          width: auto;
+        }
+        .weather-chip {
+          pointer-events: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== TOP ROW: WEATHER | EVENT | CARS ===== -->
+    <div class="top-row">
+      <div class="top-section weather-chip">
+        <div class="wc-top">
+          <div class="wc-temp" id="wcTemp">82&deg;F</div>
+          <div class="wc-cloud" id="wcClouds">&#9925;</div>
+        </div>
+        <div class="wc-bot">
+          <div class="wc-humidity-block">
+            <div class="wc-label">Humidity</div>
+            <div class="wc-row" id="wcHumidity"><span class="wc-icon">&#128167;</span> 45%</div>
+          </div>
+          <div class="wc-precip-block">
+            <div class="wc-label precip-label">Precipitation</div>
+            <div class="wc-row wc-precip" id="wcPrecip">
+              <span class="wc-icon">&#128166;</span> 0%
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="top-section event-chip">
+        <div class="top-row-inner">
+          <div>
+            <div class="primary">
+              <span class="track-chip" id="trackChip" onclick="openTrackPicker()"
+                ><span id="displayTrack">MMW Dragway</span></span
+              >
+              <span class="event-date" id="displayDate">2026-06-09</span>
+            </div>
+            <div class="track-notes-line" id="trackNotesLine"></div>
+          </div>
+          <div class="event-buttons">
+            <button onclick="openEventEditor()">Edit</button>
+            <button onclick="saveEvent()">Save</button>
+            <button onclick="openPastEvents()">Past</button>
+          </div>
+        </div>
+        <div class="event-stats">
+          <span id="runTotal">0</span> runs · <span id="winsDisplay">0</span>W
+          <span id="lossesDisplay">0</span>L · <span id="winPctDisplay">0</span>%
+        </div>
+      </div>
+      <div class="top-section">
+        <div class="top-row-inner">
+          <div>
+            <div class="label">Cars</div>
+            <div class="primary"><span id="carAtTrack">0</span> at track</div>
+            <div class="secondary"><span id="carTotal">0</span> in fleet</div>
+          </div>
+        </div>
+      </div>
+      <div class="pit-chip" onclick="openCarManager()">
+        <span class="plus">+</span><span class="label">Pit Lane</span>
+      </div>
+    </div>
+
+    <!-- ===== CAR SELECTOR ===== -->
+    <div class="car-strip" id="carStrip"></div>
+
+    <!-- ===== ENTRY FORM ===== -->
+    <div class="entry-card">
+      <div class="tab-bar">
+        <span class="tab active" data-tab="racing" onclick="switchTab('racing')">Racing</span>
+        <span class="tab" data-tab="log" onclick="switchTab('log')">Runs Log</span>
+      </div>
+      <div class="tab-pane active" id="tabRacing">
+        <div class="entry-row">
+          <div class="entry-toggle-group">
+            <div class="toggle-btn active-lane-left" data-lane="Left" onclick="setLane('Left')">
+              &#9664; Left
+            </div>
+            <div class="toggle-btn" data-lane="Right" onclick="setLane('Right')">Right &#9654;</div>
+          </div>
+          <div class="entry-toggle-group">
+            <div
+              class="toggle-btn active-session"
+              data-session="Practice"
+              onclick="setSession('Practice')"
+            >
+              Practice
+            </div>
+            <div class="toggle-btn" data-session="Elimination" onclick="setSession('Elimination')">
+              Elim
+            </div>
+          </div>
+          <div id="roundField"><span id="roundLabel">Round 1</span></div>
+        </div>
+
+        <div class="field-stack" id="fieldStack">
+          <div class="field-row">
+            <label>Reaction Time (RT)</label>
+            <input
+              type="text"
+              id="inputRT"
+              placeholder="0.0000"
+              inputmode="decimal"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row">
+            <label>60ft Trap</label>
+            <input
+              type="text"
+              id="input60"
+              placeholder="0.0000"
+              inputmode="decimal"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row">
+            <label>330ft Trap</label>
+            <input
+              type="text"
+              id="input330"
+              placeholder="0.0000"
+              inputmode="decimal"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row">
+            <label>Elapsed Time (ET)</label>
+            <input
+              type="text"
+              id="inputET"
+              placeholder="0.0000"
+              inputmode="decimal"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row">
+            <label>Mile Per Hour (mph)</label>
+            <input
+              type="text"
+              id="inputMPH"
+              placeholder="00.00"
+              inputmode="decimal"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row env-row">
+            <label>Environment</label>
+            <div class="env-controls">
+              <div class="env-group">
+                <button class="env-btn" onclick="adjustTemp(-1)">&#8722;</button>
+                <span class="env-val" id="displayTemp" onclick="quickTemp()">82&deg;F</span>
+                <button class="env-btn" onclick="adjustTemp(1)">&#43;</button>
+              </div>
+              <div class="env-group">
+                <button class="env-btn" onclick="adjustHumidity(-5)">&#8722;</button>
+                <span class="env-val" id="displayHumidity" onclick="quickHumidity()">45%</span>
+                <button class="env-btn" onclick="adjustHumidity(5)">&#43;</button>
+              </div>
+            </div>
+          </div>
+          <div class="field-row comment-row">
+            <label>Notes</label>
+            <input
+              type="text"
+              id="inputComments"
+              placeholder="Felt loose, flinched, sensor glitch..."
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row comment-row" style="margin-top: -0.2rem">
+            <label>Session</label>
+            <input
+              type="text"
+              id="inputSession"
+              placeholder="e.g. Baseline, Gear 9/35, Tires B"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field-row" id="winLossField" style="display: none">
+            <label>Result</label>
+            <div class="wl-toggle">
+              <span class="wl-opt" data-wl="win" onclick="setWL('win')">Win</span>
+              <span class="wl-opt" data-wl="loss" onclick="setWL('loss')">Loss</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitRun()">Submit Pass</button>
+        <div class="last-run-bar" id="lastRunBar"></div>
+        <div class="hotkey-hint">
+          Tab down &middot; Enter to submit &middot; Lane flips automatically &middot; Green border
+          = selected for elims
+        </div>
+      </div>
+      <div class="tab-pane" id="tabLog">
+        <div class="feed-header">
+          <h3>Runs Log</h3>
+          <div class="feed-header-right">
+            <span class="count" id="feedCount">0 runs</span>
+            <button class="clear-btn" onclick="clearAll()">Clear All</button>
+          </div>
+        </div>
+        <div class="lane-compare" id="laneCompare"></div>
+        <div class="session-filters" id="sessionFilters"></div>
+        <input
+          class="run-search"
+          id="runSearch"
+          type="text"
+          placeholder="Search runs..."
+          oninput="updateFeed()"
+        />
+        <div class="feed-scroll" id="feedContainer">
+          <div class="empty-feed">
+            <span>&#128664;</span>No runs yet. Pick a car and enter a pass.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EVENT EDITOR MODAL ===== -->
+    <div
+      class="modal-overlay"
+      id="eventModal"
+      onclick="if (event.target === this) closeEventEditor();"
+    >
+      <div class="modal">
+        <h3>Event Settings</h3>
+        <div style="font-size: 0.55rem; color: #888; margin-bottom: 0.5rem">
+          Date: <span id="modalDate">9 jun 26</span> &middot; auto-set on first run
+        </div>
+        <div class="field-group">
+          <label>Track</label>
+          <select id="editTrack">
+            <option value="MMW Dragway">MMW Dragway</option>
+            <option value="Riverside Raceway">Riverside Raceway</option>
+            <option value="Thunder Park">Thunder Park</option>
+            <option value="Test Bench">Test Bench</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Temperature &deg;F</label>
+          <input type="number" id="editTemp" value="82" placeholder="82" />
+        </div>
+        <div class="field-group">
+          <label>Humidity %</label>
+          <input type="number" id="editHumidity" value="45" placeholder="45" />
+        </div>
+        <div class="field-group" style="margin-bottom: 0.6rem">
+          <label>Get Live Weather</label>
+          <div style="display: flex; gap: 0.3rem">
+            <input
+              type="text"
+              id="editWeatherLocation"
+              placeholder="City or zip code"
+              style="flex: 1"
+            />
+            <button
+              class="save-btn"
+              style="flex: none; padding: 0.45rem 0.6rem; font-size: 0.6rem; white-space: nowrap"
+              onclick="fetchWeather()"
+            >
+              Fetch
+            </button>
+          </div>
+          <div id="weatherStatus" style="font-size: 0.5rem; color: #555; margin-top: 0.15rem"></div>
+        </div>
+        <div class="field-group">
+          <label>Notes</label>
+          <input type="text" id="editNotes" value="Left Lane sensor glitching, fresh clean track" />
+        </div>
+        <div class="modal-actions">
+          <button class="cancel-btn" onclick="closeEventEditor()">Cancel</button>
+          <button class="save-btn" onclick="saveEventSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRACK PICKER MODAL ===== -->
+    <div
+      class="modal-overlay"
+      id="trackModal"
+      onclick="if (event.target === this) closeTrackPicker();"
+    >
+      <div class="modal">
+        <h3>Track</h3>
+        <div
+          id="trackList"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            max-height: 50vh;
+            overflow-y: auto;
+            margin-bottom: 0.5rem;
+          "
+        ></div>
+        <div id="trackEditor" style="display: none; margin-bottom: 0.5rem">
+          <div class="field-group">
+            <label>Track Name</label>
+            <input type="text" id="trackEditName" />
+          </div>
+          <div class="field-group">
+            <label>Known Issues / Notes</label>
+            <input
+              type="text"
+              id="trackEditNotes"
+              placeholder="e.g. Left Lane ghost sensor, voltage surges"
+            />
+          </div>
+        </div>
+        <div class="modal-actions" id="trackPickerActions">
+          <button class="cancel-btn" onclick="closeTrackPicker()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PIT LANE MODAL ===== -->
+    <div
+      class="modal-overlay car-list-modal"
+      id="carModal"
+      onclick="if (event.target === this) closeCarManager();"
+    >
+      <div class="modal">
+        <h3>Pit Lane &mdash; <span id="carManagerCount">0</span> cars</h3>
+        <div id="carManagerList"></div>
+        <hr class="section-divider" />
+        <div class="add-car-form">
+          <input
+            type="text"
+            id="newCarName"
+            placeholder="Car name (e.g. Project Tacoma)"
+            onkeydown="if (event.key === 'Enter') addCar();"
+          />
+          <button onclick="addCar()">+ Add</button>
+        </div>
+        <div class="modal-actions" style="margin-top: 0.6rem">
+          <button class="cancel-btn" onclick="closeCarManager()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CAR EDIT MODAL ===== -->
+    <div
+      class="modal-overlay"
+      id="carEditModal"
+      onclick="if (event.target === this) closeCarEditor();"
+    >
+      <div class="modal">
+        <h3>Edit Car</h3>
+        <div class="field-group">
+          <label>Name</label>
+          <input type="text" id="editCarName" />
+        </div>
+        <div class="field-group">
+          <label>Detail (chassis, motor, etc.)</label>
+          <input type="text" id="editCarDetail" />
+        </div>
+        <div class="field-group">
+          <label>Crown Gear (teeth)</label>
+          <input type="number" id="editCarCrown" placeholder="e.g. 35" />
+        </div>
+        <div class="field-group">
+          <label>Pinion Gear (teeth)</label>
+          <input type="number" id="editCarPinion" placeholder="e.g. 9" />
+        </div>
+        <div class="field-group">
+          <label>Rollout</label>
+          <input type="number" step="0.001" id="editCarRollout" placeholder="e.g. 1.040" />
+        </div>
+        <div class="field-group">
+          <label>Motor Baseline (amps)</label>
+          <input type="number" step="0.001" id="editCarMotor" placeholder="e.g. 0.450" />
+        </div>
+        <div class="field-group">
+          <label>Dial Safety Margin</label>
+          <input
+            type="number"
+            step="0.001"
+            value="0.005"
+            id="editCarMargin"
+            placeholder="e.g. 0.005"
+          />
+        </div>
+        <div class="field-group">
+          <label>Notes (reason for change)</label>
+          <input type="text" id="editCarNotes" placeholder="e.g. Swapped 9/35 → 10/35" />
+        </div>
+        <div class="modal-actions">
+          <button class="cancel-btn" onclick="closeCarEditor()">Cancel</button>
+          <button class="save-btn" onclick="saveCarEditor()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAST EVENTS MODAL ===== -->
+    <div
+      class="modal-overlay"
+      id="pastEventsModal"
+      onclick="if (event.target === this) closePastEvents();"
+    >
+      <div class="modal" style="max-width: 420px">
+        <h3>Past Events</h3>
+        <div
+          id="pastEventsList"
+          style="max-height: 55vh; overflow-y: auto; margin-bottom: 0.5rem"
+        ></div>
+        <div class="modal-actions">
+          <button class="cancel-btn" onclick="closePastEvents()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RUN EDIT MODAL ===== -->
+    <div
+      class="modal-overlay"
+      id="runEditModal"
+      onclick="if (event.target === this) closeRunEdit();"
+    >
+      <div class="modal" style="max-width: 340px">
+        <h3>Edit Run</h3>
+        <div style="font-size: 0.5rem; color: #555; margin-bottom: 0.4rem">
+          Run #<span id="runEditId"></span>
+        </div>
+        <div class="field-group">
+          <label>Lane</label>
+          <select id="runEditLane">
+            <option value="">--</option>
+            <option value="Left">Left</option>
+            <option value="Right">Right</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="flex: 1">
+            <label>Session</label>
+            <select id="runEditSession">
+              <option value="Practice">Practice</option>
+              <option value="Elimination">Elimination</option>
+            </select>
+          </div>
+          <div class="field-group" style="flex: 1">
+            <label>Round</label>
+            <input id="runEditRound" type="number" min="1" style="width: 100%" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="flex: 1">
+            <label>RT</label>
+            <input id="runEditRT" type="text" style="width: 100%" />
+          </div>
+          <div class="field-group" style="flex: 1">
+            <label>60ft</label>
+            <input id="runEdit60" type="text" style="width: 100%" />
+          </div>
+          <div class="field-group" style="flex: 1">
+            <label>ET</label>
+            <input id="runEditET" type="text" style="width: 100%" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Notes</label>
+          <input id="runEditNotes" type="text" />
+        </div>
+        <div class="field-group">
+          <label>Session Label</label>
+          <input id="runEditLabel" type="text" placeholder="e.g. Tune 1" />
+        </div>
+        <div class="modal-actions">
+          <button class="save-btn" onclick="saveRunEdit()">Save</button>
+          <button class="cancel-btn" onclick="closeRunEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function escHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      // ===== STATE =====
+      const state = {
+        event: {
+          date: new Date().toISOString().slice(0, 10),
+          track: "MMW Dragway",
+          temperature_f: 82,
+          humidity_pct: 45,
+          pressure_inhg: 29.92,
+          precip_prob: 0,
+          notes: "Fresh clean track",
+        },
+        tracks: [
+          {
+            name: "MMW Dragway",
+            notes: "Left Lane ghost sensor reading, voltage surges in elims",
+            wins: 0,
+            losses: 0,
+          },
+          {
+            name: "Riverside Raceway",
+            notes: "Smooth surface, Right Lane typically faster",
+            wins: 0,
+            losses: 0,
+          },
+          {
+            name: "Thunder Park",
+            notes: "Elevation drop, car runs loose in Right Lane",
+            wins: 0,
+            losses: 0,
+          },
+          { name: "Test Bench", notes: "Home test surface, no lane issues", wins: 0, losses: 0 },
+          { name: "Other", notes: "", wins: 0, losses: 0 },
+        ],
+        // Master list of ALL cars the user owns. Each car has:
+        //   id, name, detail, atTrack (bool for today)
+        cars: [
+          {
+            id: 1,
+            name: "HellFire",
+            detail: "S10 · Eagle · 3.200",
+            img: "",
+            atTrack: true,
+            elim: true,
+          },
+          {
+            id: 2,
+            name: "Mirage",
+            detail: "'64 Impala · Steel · 3.200",
+            img: "",
+            atTrack: true,
+            elim: true,
+          },
+          {
+            id: 3,
+            name: "E-Ticket",
+            detail: "Jag E-Type · Wire · 3.200",
+            img: "",
+            atTrack: true,
+            elim: true,
+          },
+          {
+            id: 4,
+            name: "Golden Bug",
+            detail: "Beetle · No-Bar · 3.200",
+            img: "",
+            atTrack: true,
+            elim: false,
+          },
+          {
+            id: 5,
+            name: "Red Shift",
+            detail: "Civic EK · DPR · 2.700",
+            img: "",
+            atTrack: true,
+            elim: true,
+          },
+          {
+            id: 6,
+            name: "CodeRed",
+            detail: "Chevelle · 3.200",
+            img: "",
+            atTrack: false,
+            elim: false,
+          },
+          {
+            id: 7,
+            name: "Skull Breaker",
+            detail: "Wire · 3.200",
+            img: "",
+            atTrack: false,
+            elim: false,
+          },
+          { id: 8, name: "Nomaad", detail: "Wild card", img: "", atTrack: false, elim: false },
+          {
+            id: 9,
+            name: "Slingshot",
+            detail: "EK Hatch · Carbon FWD",
+            img: "",
+            atTrack: false,
+            elim: false,
+          },
+          { id: 10, name: "Purple Thunder", detail: "Build", img: "", atTrack: false, elim: false },
+        ],
+        selectedCarId: null,
+        currentLane: "Left",
+        currentSession: "Practice",
+        currentRound: 1,
+        runs: [],
+        nextRunId: 1,
+        lastSubmit: null,
+        nextCarId: 11,
+        feedFilter: null, // null=all, or a session_label string
+        savedEvents: [],
+        wlChoice: null,
+      };
+
+      // ===== INIT =====
+      function switchTab(name) {
+        document
+          .querySelectorAll(".tab-bar .tab")
+          .forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+        document
+          .querySelectorAll(".tab-pane")
+          .forEach((p) =>
+            p.classList.toggle("active", p.id === "tab" + name[0].toUpperCase() + name.slice(1)),
+          );
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem("cars", JSON.stringify(state.cars));
+          localStorage.setItem("nextCarId", state.nextCarId);
+        } catch (e) {
+          console.warn("Failed to save car data to localStorage:", e.message);
+        }
+      }
+
+      function loadState() {
+        const raw = localStorage.getItem("cars");
+        if (raw) {
+          try {
+            const saved = JSON.parse(raw);
+            if (Array.isArray(saved) && saved.length) state.cars = saved;
+          } catch (e) {
+            /* ignore corrupt data */
+          }
+        }
+        const nid = localStorage.getItem("nextCarId");
+        if (nid) state.nextCarId = parseInt(nid);
+      }
+
+      function init() {
+        loadState();
+        renderCarStrip();
+        setLane("Left");
+        setSession("Practice");
+        updateEventBar();
+        updateEnvDisplay();
+        updateFeed();
+        updateLaneCompare();
+        document.getElementById("submitBtn").disabled = true;
+
+        // Auto-fetch weather from saved location
+        const savedLoc = localStorage.getItem("weatherLocation");
+        if (savedLoc) {
+          document.getElementById("editWeatherLocation").value = savedLoc;
+          fetchWeather();
+        }
+
+        document.querySelectorAll("#fieldStack input").forEach((el) => {
+          el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitRun();
+            }
+          });
+        });
+
+        // Auto-decimal for timing fields (ten-thousandths)
+        ["inputRT", "input60", "input330", "inputET"].forEach((id) => {
+          document.getElementById(id).addEventListener("input", function () {
+            const isNeg = this.value.startsWith("-");
+            const digits = this.value.replace(/[^0-9]/g, "");
+            if (!digits) {
+              this.value = isNeg ? "-" : "";
+              return;
+            }
+            let val;
+            if (digits.length >= 5) {
+              val = digits[0] + "." + digits.slice(1, 5);
+            } else {
+              val = "." + digits.slice(0, 4);
+            }
+            if (val.startsWith("0.")) val = val.slice(1);
+            if (isNeg && val) val = "-" + val;
+            this.value = val;
+          });
+        });
+        // MPH: 2 before decimal, 2 after
+        document.getElementById("inputMPH").addEventListener("input", function () {
+          const digits = this.value.replace(/[^0-9]/g, "");
+          if (!digits) {
+            this.value = "";
+            return;
+          }
+          this.value = digits.slice(0, -2) + "." + digits.slice(-2);
+        });
+
+        // Auto-select first car at track
+        const first = state.cars.find((c) => c.atTrack);
+        if (first) selectCar(first.id);
+      }
+
+      // ===== CARS AT TRACK =====
+      function carsAtTrack() {
+        return state.cars.filter((c) => c.atTrack);
+      }
+      function getCar(id) {
+        return state.cars.find((c) => c.id === id);
+      }
+
+      // ===== CAR STRIP =====
+      function computeDial(etValues, margin) {
+        // Dial = best practice ET minus per-car safety margin.
+        // Lane separation is prioritized over clean .xxx0/.xxx5 numbers.
+        if (etValues.length === 0) return null;
+        const best = Math.min(...etValues);
+        const m = margin || 0.005;
+        return Math.max(0, Math.round((best - m) * 1000) / 1000);
+      }
+
+      function renderCarStrip() {
+        const strip = document.getElementById("carStrip");
+        strip.innerHTML = "";
+        const atTrack =
+          state.currentSession === "Elimination"
+            ? carsAtTrack().filter((c) => c.elim && c.alive !== false)
+            : carsAtTrack();
+        atTrack.forEach((c) => {
+          const div = document.createElement("div");
+          let cls = "car-chip";
+          if (state.selectedCarId === c.id) cls += " active";
+          if (c.elim) cls += " elim-select";
+          div.className = cls;
+          div.dataset.carId = c.id;
+          const runs = state.runs.filter((r) => r.car_id === c.id);
+          const rc = runs.length;
+          // Best runs (overall, left lane, right lane)
+          let best = null,
+            bestL = null,
+            bestR = null;
+          runs.forEach((r) => {
+            if (r.et !== null) {
+              if (best === null || r.et < best.et) best = r;
+              if (r.lane === "Left" && (bestL === null || r.et < bestL.et)) bestL = r;
+              if (r.lane === "Right" && (bestR === null || r.et < bestR.et)) bestR = r;
+            }
+          });
+          // Dial-in: from practice ETs only (exclude elims for projection)
+          const practiceETs = runs
+            .filter((r) => r.session_type === "Practice" && r.et !== null)
+            .map((r) => r.et);
+          const dial = computeDial(practiceETs, c.safetyMargin || 0.005);
+          const leftETs = runs
+            .filter((r) => r.session_type === "Practice" && r.lane === "Left" && r.et !== null)
+            .map((r) => r.et);
+          const rightETs = runs
+            .filter((r) => r.session_type === "Practice" && r.lane === "Right" && r.et !== null)
+            .map((r) => r.et);
+          const dialL = computeDial(leftETs, c.safetyMargin || 0.005);
+          const dialR = computeDial(rightETs, c.safetyMargin || 0.005);
+          // Build chip parts
+          const baseL = dialL !== null ? dialL + (c.dialTrimL || 0) : null;
+          const baseR = dialR !== null ? dialR + (c.dialTrimR || 0) : null;
+          // Spec line
+          let specParts = [];
+          if (c.crown && c.pinion) specParts.push(`${c.crown}/${c.pinion}`);
+          else if (c.crown) specParts.push(`${c.crown}t`);
+          else if (c.pinion) specParts.push(`${c.pinion}t`);
+          if (c.rollout) specParts.push(`R${c.rollout}`);
+          if (c.motor_amps) specParts.push(`${c.motor_amps}A`);
+          // Thumbnail
+          const thumbHtml = c.img
+            ? `<div class="thumb" onclick="event.stopPropagation();setCarImage(${c.id})"><img src="${c.img}" alt="${c.name}" /></div>`
+            : `<div class="thumb" onclick="event.stopPropagation();setCarImage(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14"/></svg></div>`;
+          // Info: name + spec
+          let infoHtml = `<div class="chip-info"><div class="chip-name">${c.name}</div>`;
+          if (specParts.length) infoHtml += `<div class="chip-spec">${specParts.join(" ")}</div>`;
+          infoHtml += "</div>";
+          // Runs count box
+          const runsHtml = rc
+            ? `<div class="chip-runs"><div class="runs-label">Runs</div><div class="runs-num">${rc}</div></div>`
+            : "";
+          // Dials: individual grid items
+          const dialLH =
+            baseL !== null
+              ? `<div class="dial-box dial-box-l">
+            <div class="dial-box-label">Left</div>
+            <div class="dial-box-val">${baseL.toFixed(3)}</div>
+            <div class="dial-box-btns">
+              <button class="dial-adj" onclick="event.stopPropagation();adjustDial(${c.id},'L',-0.001)">-</button>
+              <button class="dial-adj" onclick="event.stopPropagation();adjustDial(${c.id},'L',0.001)">+</button>
+            </div>
+          </div>`
+              : "";
+          const dialRH =
+            baseR !== null
+              ? `<div class="dial-box dial-box-r">
+            <div class="dial-box-label">Right</div>
+            <div class="dial-box-val">${baseR.toFixed(3)}</div>
+            <div class="dial-box-btns">
+              <button class="dial-adj" onclick="event.stopPropagation();adjustDial(${c.id},'R',-0.001)">-</button>
+              <button class="dial-adj" onclick="event.stopPropagation();adjustDial(${c.id},'R',0.001)">+</button>
+            </div>
+          </div>`
+              : "";
+          // Best times along bottom, aligned under respective columns
+          const tooltip =
+            dial !== null
+              ? `Overall: ${dial.toFixed(3)}${dialL !== null ? " | Left: " + dialL.toFixed(3) : ""}${dialR !== null ? " | Right: " + dialR.toFixed(3) : ""} — best ET minus ${(c.safetyMargin || 0.005).toFixed(3)} margin`
+              : "";
+          const bestH = best
+            ? `<div class="chip-best" title="${tooltip}">Best: ${best.et.toFixed(4)}</div>`
+            : '<div class="chip-best"></div>';
+          const bestLH = bestL
+            ? `<div class="chip-best-l">${bestL.et.toFixed(4)}</div>`
+            : '<div class="chip-best-l"></div>';
+          const bestRH = bestR
+            ? `<div class="chip-best-r">${bestR.et.toFixed(4)}</div>`
+            : '<div class="chip-best-r"></div>';
+          div.innerHTML =
+            thumbHtml + infoHtml + runsHtml + dialLH + dialRH + bestH + bestLH + bestRH;
+          div.addEventListener("click", () => selectCar(c.id));
+          strip.appendChild(div);
+        });
+      }
+
+      function selectCar(id) {
+        state.selectedCarId = id;
+        document.querySelectorAll(".car-chip").forEach((b) => {
+          b.classList.toggle("active", parseInt(b.dataset.carId) === id);
+        });
+        document.getElementById("submitBtn").disabled = false;
+        document.getElementById("inputRT").focus();
+        updateLastRun();
+        updateLaneCompare();
+      }
+
+      // ===== LANE / SESSION =====
+      function setLane(lane) {
+        state.currentLane = lane;
+        document.querySelectorAll("[data-lane]").forEach((b) => {
+          b.classList.remove("active-lane-left", "active-lane-right");
+          if (b.dataset.lane === lane)
+            b.classList.add(lane === "Left" ? "active-lane-left" : "active-lane-right");
+        });
+      }
+
+      function setSession(type) {
+        state.currentSession = type;
+        document.querySelectorAll("[data-session]").forEach((b) => {
+          b.classList.toggle("active-session", b.dataset.session === type);
+        });
+        if (type === "Elimination") {
+          // Reset bracket: all elim cars alive at round 1
+          state.cars.forEach((c) => {
+            if (c.elim) c.alive = true;
+          });
+          state.currentRound = 1;
+        }
+        document.getElementById("roundField").style.display =
+          type === "Elimination" ? "block" : "none";
+        document.getElementById("winLossField").style.display =
+          type === "Elimination" ? "flex" : "none";
+        if (type !== "Elimination") {
+          state.wlChoice = null;
+          document.querySelectorAll(".wl-opt").forEach((e) => e.classList.remove("wl-active"));
+        }
+        renderCarStrip();
+        updateEventBar();
+      }
+
+      function setWL(val) {
+        state.wlChoice = val;
+        document
+          .querySelectorAll(".wl-opt")
+          .forEach((e) => e.classList.toggle("wl-active", e.dataset.wl === val));
+      }
+
+      // ===== SUBMIT =====
+      function submitRun() {
+        if (!state.selectedCarId) {
+          alert("Select a car first.");
+          return;
+        }
+        if (state.currentSession === "Elimination" && !state.wlChoice) {
+          alert("Select Win or Loss before submitting.");
+          return;
+        }
+        const car = getCar(state.selectedCarId);
+        const rawRT = document.getElementById("inputRT").value.trim();
+        const raw60 = document.getElementById("input60").value.trim();
+        const raw330 = document.getElementById("input330").value.trim();
+        const rawET = document.getElementById("inputET").value.trim();
+        const rawMPH = document.getElementById("inputMPH").value.trim();
+
+        const rt = rawRT ? parseFloat(rawRT) : null;
+        const sixty = raw60 ? parseFloat(raw60) : null;
+        const three30 = raw330 ? parseFloat(raw330) : null;
+        const et = rawET ? parseFloat(rawET) : null;
+        const mph = rawMPH ? parseFloat(rawMPH) : null;
+        const comments = document.getElementById("inputComments").value.trim() || null;
+        const session_label = document.getElementById("inputSession").value.trim() || null;
+        const round = state.currentSession === "Elimination" ? state.currentRound : null;
+
+        if (!rt && !sixty && !et) {
+          alert("Enter at least one time value.");
+          return;
+        }
+
+        const run = {
+          run_id: state.nextRunId++,
+          event_date: state.event.date,
+          car_id: car.id,
+          car_name: car.name,
+          lane: state.currentLane,
+          session_type: state.currentSession,
+          round: round,
+          rt: rt,
+          sixty_ft: sixty,
+          three30_ft: three30,
+          et: et,
+          mph: mph,
+          comments: comments,
+          session_label: session_label,
+          temp: state.event.temperature_f,
+          humidity: state.event.humidity_pct,
+        };
+
+        // Breakout detection: compare ET against the car chip dial (including trim)
+        if (state.currentSession === "Elimination" && et !== null) {
+          const margin = car.safetyMargin || 0.005;
+          const leftETs = state.runs
+            .filter(
+              (r) =>
+                r.car_id === car.id &&
+                r.session_type === "Practice" &&
+                r.lane === "Left" &&
+                r.et !== null,
+            )
+            .map((r) => r.et);
+          const rightETs = state.runs
+            .filter(
+              (r) =>
+                r.car_id === car.id &&
+                r.session_type === "Practice" &&
+                r.lane === "Right" &&
+                r.et !== null,
+            )
+            .map((r) => r.et);
+          const dialL = computeDial(leftETs, margin);
+          const dialR = computeDial(rightETs, margin);
+          const chipL = dialL !== null ? dialL + (car.dialTrimL || 0) : null;
+          const chipR = dialR !== null ? dialR + (car.dialTrimR || 0) : null;
+          let refDial = null;
+          if (state.currentLane === "Left" && chipL !== null) refDial = chipL;
+          else if (state.currentLane === "Right" && chipR !== null) refDial = chipR;
+          else if (chipL !== null) refDial = chipL;
+          else if (chipR !== null) refDial = chipR;
+          if (refDial !== null && et < refDial) {
+            run.comments = (run.comments ? run.comments + " " : "") + "[Breakout]";
+          }
+        }
+
+        state.runs.push(run);
+        state.lastSubmit = run;
+
+        // Auto-set date on first run
+        if (state.runs.length === 1) {
+          state.event.date = new Date().toISOString().slice(0, 10);
+        }
+
+        // Auto-increment win/loss from required Elim choice
+        const elimResult = state.wlChoice;
+        if (state.currentSession === "Elimination" && state.wlChoice) {
+          const trk = currentTrack();
+          if (state.wlChoice === "win") trk.wins = (trk.wins || 0) + 1;
+          else trk.losses = (trk.losses || 0) + 1;
+          state.wlChoice = null;
+          document.querySelectorAll(".wl-opt").forEach((e) => e.classList.remove("wl-active"));
+        }
+
+        // Elim round tracking (uses captured elimResult before it was cleared)
+        if (state.currentSession === "Elimination") {
+          if (elimResult === "loss") car.alive = false;
+          const aliveCars = state.cars.filter((c) => c.elim && c.alive);
+          if (aliveCars.length > 0) {
+            const ranThisRound = state.runs.filter(
+              (r) =>
+                r.session_type === "Elimination" &&
+                r.round === state.currentRound &&
+                r.car_id !== undefined,
+            );
+            const allRan = aliveCars.every((c) => ranThisRound.some((r) => r.car_id === c.id));
+            if (allRan) state.currentRound++;
+          }
+          document.getElementById("roundLabel").textContent = "Round " + state.currentRound;
+        }
+
+        // Clear fields
+        document.getElementById("inputRT").value = "";
+        document.getElementById("input60").value = "";
+        document.getElementById("input330").value = "";
+        document.getElementById("inputET").value = "";
+        document.getElementById("inputMPH").value = "";
+        document.getElementById("inputComments").value = "";
+        document.getElementById("inputSession").value = "";
+
+        // Auto-toggle lane
+        setLane(state.currentLane === "Left" ? "Right" : "Left");
+
+        updateEventBar();
+        updateFeed();
+        renderCarStrip();
+        updateLastRun();
+        document.getElementById("inputRT").focus();
+      }
+
+      // ===== LAST RUN =====
+      function updateLastRun() {
+        const bar = document.getElementById("lastRunBar");
+        if (!state.lastSubmit) {
+          bar.innerHTML = "";
+          return;
+        }
+        const r = state.lastSubmit;
+        const color = r.rt < 0 ? "#e53935" : "#888";
+        const lane = r.lane || "--";
+        bar.innerHTML = `Last: <strong style="color:${color};">${r.car_name}</strong> ${lane} &middot; ET <strong>${r.et !== null ? r.et.toFixed(4) : "--"}</strong> &middot; RT <strong>${r.rt !== null ? r.rt.toFixed(4) : "--"}</strong>`;
+      }
+
+      // ===== FEED =====
+      function updateFeed() {
+        const container = document.getElementById("feedContainer");
+        const total = state.runs.length;
+        // Build unique session labels
+        const labels = [...new Set(state.runs.map((r) => r.session_label).filter(Boolean))];
+        let filtered = state.runs;
+        if (state.feedFilter) {
+          filtered = filtered.filter((r) => r.session_label === state.feedFilter);
+        }
+        document.getElementById("feedCount").textContent = filtered.length + "/" + total + " runs";
+        // Search filter
+        const searchTerm = (document.getElementById("runSearch").value || "").toLowerCase().trim();
+        if (searchTerm) {
+          filtered = filtered.filter(
+            (r) =>
+              (r.car_name && r.car_name.toLowerCase().includes(searchTerm)) ||
+              (r.comments && r.comments.toLowerCase().includes(searchTerm)) ||
+              (r.session_label && r.session_label.toLowerCase().includes(searchTerm)) ||
+              (r.lane && r.lane.toLowerCase().includes(searchTerm)) ||
+              String(r.run_id).includes(searchTerm),
+          );
+        }
+        // Session filter buttons
+        const filterBar = document.getElementById("sessionFilters");
+        filterBar.innerHTML = "";
+        const allBtn = document.createElement("button");
+        allBtn.className = "sf-btn" + (state.feedFilter === null ? " active" : "");
+        allBtn.textContent = "All";
+        allBtn.onclick = () => {
+          state.feedFilter = null;
+          updateFeed();
+        };
+        filterBar.appendChild(allBtn);
+        labels.forEach((l) => {
+          const btn = document.createElement("button");
+          btn.className = "sf-btn" + (state.feedFilter === l ? " active" : "");
+          btn.textContent = l;
+          btn.onclick = () => {
+            state.feedFilter = l;
+            updateFeed();
+          };
+          filterBar.appendChild(btn);
+        });
+        if (filtered.length === 0) {
+          container.innerHTML =
+            '<div class="empty-feed"><span>&#128664;</span>No runs yet. Pick a car and enter a pass.</div>';
+          updateLaneCompare();
+          return;
+        }
+        let html =
+          '<div class="run-row header"><div>#</div><div>Car</div><div>Ln</div><div>RT</div><div>60ft</div><div>ET</div><div>Notes</div><div></div></div>';
+        // Build per-car stats for anomaly detection (need >=3 runs for meaningful stats)
+        const carAnomStats = {};
+        state.cars.forEach((c) => {
+          const cr = state.runs.filter((r) => r.car_id === c.id && r.et !== null);
+          if (cr.length < 3) return;
+          const median = (arr) => {
+            const s = [...arr].sort((a, b) => a - b);
+            return s.length ? s[Math.floor(s.length / 2)] : null;
+          };
+          const mad = (arr, med) => {
+            if (!arr.length) return 0;
+            const d = arr.map((v) => Math.abs(v - med)).sort((a, b) => a - b);
+            return 1.4826 * d[Math.floor(d.length / 2)];
+          };
+          const ets = cr.map((r) => r.et).filter((v) => v !== null);
+          const s60s = cr.map((r) => r.sixty_ft).filter((v) => v !== null);
+          const t330s = cr.map((r) => r.three30_ft).filter((v) => v !== null);
+          const mphs = cr.map((r) => r.mph).filter((v) => v !== null);
+          const medET = median(ets);
+          const med60 = median(s60s);
+          const med330 = median(t330s);
+          const medMPH = median(mphs);
+          carAnomStats[c.id] = {
+            et: { median: medET, threshold: Math.max(0.01, 3 * mad(ets, medET)) },
+            sixty: { median: med60, threshold: Math.max(0.005, 3 * mad(s60s, med60)) },
+            three30: { median: med330, threshold: Math.max(0.01, 3 * mad(t330s, med330)) },
+            mph: { median: medMPH, threshold: Math.max(1.0, 3 * mad(mphs, medMPH)) },
+          };
+        });
+        [...filtered].reverse().forEach((r) => {
+          const isRed = r.rt < 0;
+          // Breakout check: from stored tag, or compute from car's current chip dial
+          let isBreakout = r.comments && r.comments.includes("[Breakout]");
+          if (!isBreakout && r.et !== null && r.session_type === "Elimination") {
+            const car = getCar(r.car_id);
+            if (car) {
+              const margin = car.safetyMargin || 0.005;
+              const leftETs = state.runs
+                .filter(
+                  (x) =>
+                    x.car_id === car.id &&
+                    x.session_type === "Practice" &&
+                    x.lane === "Left" &&
+                    x.et !== null,
+                )
+                .map((x) => x.et);
+              const rightETs = state.runs
+                .filter(
+                  (x) =>
+                    x.car_id === car.id &&
+                    x.session_type === "Practice" &&
+                    x.lane === "Right" &&
+                    x.et !== null,
+                )
+                .map((x) => x.et);
+              const dialL = computeDial(leftETs, margin);
+              const dialR = computeDial(rightETs, margin);
+              const chipL = dialL !== null ? dialL + (car.dialTrimL || 0) : null;
+              const chipR = dialR !== null ? dialR + (car.dialTrimR || 0) : null;
+              let refDial = null;
+              if (r.lane === "Left" && chipL !== null) refDial = chipL;
+              else if (r.lane === "Right" && chipR !== null) refDial = chipR;
+              else if (chipL !== null) refDial = chipL;
+              else if (chipR !== null) refDial = chipR;
+              if (refDial !== null && r.et < refDial) isBreakout = true;
+            }
+          }
+          // Anomaly detection: check each timing field against car stats
+          let isAnomET = false,
+            isAnom60 = false,
+            isAnom330 = false,
+            isAnomMPH = false;
+          const st = carAnomStats[r.car_id];
+          if (st) {
+            if (
+              r.et !== null &&
+              st.et.median !== null &&
+              Math.abs(r.et - st.et.median) > st.et.threshold
+            )
+              isAnomET = true;
+            if (
+              r.sixty_ft !== null &&
+              st.sixty.median !== null &&
+              Math.abs(r.sixty_ft - st.sixty.median) > st.sixty.threshold
+            )
+              isAnom60 = true;
+            if (
+              r.three30_ft !== null &&
+              st.three30.median !== null &&
+              Math.abs(r.three30_ft - st.three30.median) > st.three30.threshold
+            )
+              isAnom330 = true;
+            if (
+              r.mph !== null &&
+              st.mph.median !== null &&
+              Math.abs(r.mph - st.mph.median) > st.mph.threshold
+            )
+              isAnomMPH = true;
+          }
+          const isAnomaly = isAnomET || isAnom60 || isAnom330 || isAnomMPH;
+          const lc = r.lane ? (r.lane === "Left" ? "left" : "right") : "";
+          let noteParts = [];
+          if (isRed) noteParts.push("Red light");
+          if (r.comments) noteParts.push(r.comments);
+          if (isAnomaly) noteParts.push("[Anomaly]");
+          if (r.session_label) noteParts.push("[" + r.session_label + "]");
+          html += `<div class="run-row">
+        <div class="r-id">${r.run_id}</div>
+        <div class="r-car">${escHtml(r.car_name)}</div>
+        <div class="r-lane ${lc}">${r.lane || "--"}</div>
+        <div class="r-val ${isRed ? "r-red" : ""}">${r.rt !== null ? r.rt.toFixed(4) : "--"}</div>
+        <div class="r-val ${isAnom60 ? "r-anom" : ""}">${r.sixty_ft !== null ? r.sixty_ft.toFixed(4) : "--"}</div>
+        <div class="r-val ${isBreakout ? "r-breakout" : isAnomET ? "r-anom" : ""}">${r.et !== null ? r.et.toFixed(4) : "--"}</div>
+        <div class="r-note">${noteParts.filter(Boolean).join(" ")}</div>
+        <div class="r-actions">
+          <button onclick="event.stopPropagation();editRun(${r.run_id})" title="Edit">&#9998;</button>
+          <button class="act-del" onclick="event.stopPropagation();deleteRun(${r.run_id})" title="Delete">&#10005;</button>
+        </div>
+      </div>`;
+        });
+        container.innerHTML = html;
+        container.parentElement.scrollTop = 0;
+        updateLaneCompare();
+      }
+
+      function updateLaneCompare() {
+        const lanes = document.getElementById("laneCompare");
+        const carId = state.selectedCarId;
+        if (!carId) {
+          lanes.innerHTML =
+            '<span style="color:#444;font-size:0.45rem;">Select a car to compare lanes</span>';
+          return;
+        }
+        const car = getCar(carId);
+        const leftRuns = state.runs.filter(
+          (r) =>
+            r.car_id === carId &&
+            r.lane === "Left" &&
+            r.et !== null &&
+            r.session_type !== "Elimination",
+        );
+        const rightRuns = state.runs.filter(
+          (r) =>
+            r.car_id === carId &&
+            r.lane === "Right" &&
+            r.et !== null &&
+            r.session_type !== "Elimination",
+        );
+        if (leftRuns.length < 1 || rightRuns.length < 1) {
+          lanes.innerHTML =
+            '<span style="color:#444;font-size:0.45rem;">' +
+            (car ? car.name : "This car") +
+            " needs both Left and Right practice runs with ET to compare lanes</span>";
+          return;
+        }
+        const leftAvg = leftRuns.reduce((s, r) => s + r.et, 0) / leftRuns.length;
+        const rightAvg = rightRuns.reduce((s, r) => s + r.et, 0) / rightRuns.length;
+        const diff = leftAvg - rightAvg;
+        const faster = diff < 0 ? "Left" : "Right";
+        lanes.innerHTML = `<span class="lc-left">L: ${leftAvg.toFixed(4)} (${leftRuns.length})</span><span style="color:#555;">${car ? car.name : ""}</span><span class="lc-right">R: ${rightAvg.toFixed(4)} (${rightRuns.length})</span><span class="lc-diff">${faster} +${Math.abs(diff).toFixed(4)}</span>`;
+      }
+
+      // ===== RUN EDIT / DELETE =====
+      let _editingRunId = null;
+
+      function editRun(runId) {
+        const r = state.runs.find((x) => x.run_id === runId);
+        if (!r) return;
+        _editingRunId = runId;
+        document.getElementById("runEditId").textContent = runId;
+        document.getElementById("runEditLane").value = r.lane || "";
+        document.getElementById("runEditSession").value = r.session_type || "Practice";
+        document.getElementById("runEditRound").value = r.round || 1;
+        document.getElementById("runEditRT").value = r.rt !== null ? r.rt.toFixed(4) : "";
+        document.getElementById("runEdit60").value =
+          r.sixty_ft !== null ? r.sixty_ft.toFixed(4) : "";
+        document.getElementById("runEditET").value = r.et !== null ? r.et.toFixed(4) : "";
+        document.getElementById("runEditNotes").value = r.comments || "";
+        document.getElementById("runEditLabel").value = r.session_label || "";
+        document.getElementById("runEditModal").style.display = "flex";
+      }
+
+      function closeRunEdit() {
+        document.getElementById("runEditModal").style.display = "none";
+        _editingRunId = null;
+      }
+
+      function saveRunEdit() {
+        const r = state.runs.find((x) => x.run_id === _editingRunId);
+        if (!r) return;
+        r.lane = document.getElementById("runEditLane").value || null;
+        r.session_type = document.getElementById("runEditSession").value;
+        r.round = parseInt(document.getElementById("runEditRound").value) || 1;
+        const rt = parseFloat(document.getElementById("runEditRT").value);
+        r.rt = isNaN(rt) ? null : rt;
+        const s60 = parseFloat(document.getElementById("runEdit60").value);
+        r.sixty_ft = isNaN(s60) ? null : s60;
+        const et = parseFloat(document.getElementById("runEditET").value);
+        r.et = isNaN(et) ? null : et;
+        r.comments = document.getElementById("runEditNotes").value.trim() || null;
+        r.session_label = document.getElementById("runEditLabel").value.trim() || null;
+        saveState();
+        closeRunEdit();
+        updateFeed();
+        updateLastRun();
+        renderCarStrip();
+        updateEventBar();
+      }
+
+      function deleteRun(runId) {
+        const r = state.runs.find((x) => x.run_id === runId);
+        if (!r) return;
+        if (
+          !confirm(
+            `Delete run #${runId} (${r.car_name} — ${r.et !== null ? r.et.toFixed(4) : "--"})?`,
+          )
+        )
+          return;
+        state.runs = state.runs.filter((x) => x.run_id !== runId);
+        saveState();
+        updateFeed();
+        updateLastRun();
+        renderCarStrip();
+        updateEventBar();
+      }
+
+      // ===== EVENT BAR =====
+      // Density altitude calc — kept for past events compatibility
+      function calcDA(tempF, humidity, pressureInHg) {
+        if (tempF == null || pressureInHg == null) return null;
+        const tk = ((tempF - 32) * 5) / 9 + 273.15;
+        const p = pressureInHg * 33.8639;
+        const es = 6.112 * Math.exp((17.67 * (tk - 273.15)) / (tk - 273.15 + 243.5));
+        const e = (es * (humidity || 0)) / 100;
+        const pv = p - e;
+        return Math.round(
+          145442.16 *
+            (1 -
+              Math.pow((17.326 * pv) / 100 / (tk * (1 + (0.02 * (humidity || 0)) / 100)), 0.235)),
+        );
+      }
+      function fmtDate(iso) {
+        if (!iso) return "--";
+        const d = new Date(iso + "T00:00:00");
+        const months = [
+          "jan",
+          "feb",
+          "mar",
+          "apr",
+          "may",
+          "jun",
+          "jul",
+          "aug",
+          "sep",
+          "oct",
+          "nov",
+          "dec",
+        ];
+        return (
+          String(d.getDate()) + " " + months[d.getMonth()] + " " + String(d.getFullYear()).slice(-2)
+        );
+      }
+      function currentTrack() {
+        return state.tracks.find((t) => t.name === state.event.track) || state.tracks[0];
+      }
+      function updateEventBar() {
+        document.getElementById("displayDate").textContent = fmtDate(state.event.date);
+        document.getElementById("displayTrack").textContent = state.event.track;
+        document.getElementById("runTotal").textContent = state.runs.length;
+        const trk = currentTrack();
+        const w = trk.wins || 0;
+        const l = trk.losses || 0;
+        document.getElementById("winsDisplay").textContent = w;
+        document.getElementById("lossesDisplay").textContent = l;
+        document.getElementById("winPctDisplay").textContent =
+          w + l > 0 ? Math.round((w / (w + l)) * 100) : 0;
+        document.getElementById("carAtTrack").textContent =
+          state.currentSession === "Elimination"
+            ? carsAtTrack().filter((c) => c.elim).length
+            : carsAtTrack().length;
+        document.getElementById("carTotal").textContent = state.cars.length;
+        document.getElementById("roundLabel").textContent = "Round " + state.currentRound;
+        // Weather chip
+        const t = state.event.temperature_f;
+        const h = state.event.humidity_pct;
+        const pp = state.event.precip_prob;
+        document.getElementById("wcTemp").innerHTML = (t || "--") + "&deg;F";
+        document.getElementById("wcHumidity").innerHTML =
+          '<span style="opacity:0.5;">&#128167;</span> ' + (h || "--") + "%";
+        document.getElementById("wcPrecip").innerHTML =
+          '<span style="opacity:0.5;">&#128166;</span> ' +
+          (pp !== null && pp !== undefined ? pp : "--") +
+          "%";
+        document.getElementById("wcClouds").innerHTML = "&#9925;";
+        // Show track notes
+        const track = state.tracks.find((t) => t.name === state.event.track);
+        const notesEl = document.getElementById("trackNotesLine");
+        if (track && track.notes) {
+          notesEl.textContent = track.notes;
+          notesEl.style.display = "block";
+        } else {
+          notesEl.style.display = "none";
+        }
+      }
+
+      // ===== EVENT EDITOR =====
+      function openEventEditor() {
+        document.getElementById("modalDate").textContent = fmtDate(state.event.date);
+        document.getElementById("editTrack").value = state.event.track;
+        document.getElementById("editTemp").value = state.event.temperature_f;
+        document.getElementById("editHumidity").value = state.event.humidity_pct;
+        document.getElementById("editNotes").value = state.event.notes;
+        document.getElementById("editWeatherLocation").value = "";
+        document.getElementById("weatherStatus").textContent = "";
+        document.getElementById("eventModal").classList.add("show");
+      }
+      function closeEventEditor() {
+        document.getElementById("eventModal").classList.remove("show");
+      }
+
+      async function fetchWeather() {
+        const loc = document.getElementById("editWeatherLocation").value.trim();
+        const status = document.getElementById("weatherStatus");
+        if (!loc) {
+          status.textContent = "Enter a city or zip code first.";
+          return;
+        }
+        status.textContent = "Looking up...";
+        try {
+          // Geocode
+          const geo = await fetch(
+            "https://geocoding-api.open-meteo.com/v1/search?name=" +
+              encodeURIComponent(loc) +
+              "&count=1&language=en&format=json",
+          );
+          const geoData = await geo.json();
+          if (!geoData.results || geoData.results.length === 0) {
+            status.textContent = "Location not found. Try a different name.";
+            return;
+          }
+          const { latitude, longitude, name, admin1, country } = geoData.results[0];
+          // Fetch weather + daily precip probability
+          const wth = await fetch(
+            "https://api.open-meteo.com/v1/forecast?latitude=" +
+              latitude +
+              "&longitude=" +
+              longitude +
+              "&current=temperature_2m,relative_humidity_2m,cloud_cover&daily=precipitation_probability_max&temperature_unit=fahrenheit&forecast_days=1",
+          );
+          const wthData = await wth.json();
+          if (!wthData.current) {
+            status.textContent = "Weather data unavailable.";
+            return;
+          }
+          const temp = Math.round(wthData.current.temperature_2m);
+          const humidity = wthData.current.relative_humidity_2m;
+          const cloudCover = wthData.current.cloud_cover;
+          const precipProb = wthData.daily?.precipitation_probability_max?.[0];
+          document.getElementById("editTemp").value = temp;
+          document.getElementById("editHumidity").value = humidity;
+          // Apply to state immediately so weather chip updates
+          state.event.temperature_f = temp;
+          state.event.humidity_pct = humidity;
+          state.event.precip_prob = precipProb !== undefined ? precipProb : 0;
+          updateEventBar();
+          status.textContent =
+            "Loaded: " +
+            temp +
+            "\u00b0F, " +
+            humidity +
+            "%" +
+            (precipProb !== undefined ? ", rain " + precipProb + "%" : "") +
+            (cloudCover !== undefined ? ", \u2601 " + cloudCover + "%" : "") +
+            " for " +
+            name +
+            ", " +
+            (admin1 || country);
+          // Persist location for auto-fetch on next load
+          localStorage.setItem("weatherLocation", loc);
+        } catch (e) {
+          status.textContent = "Error fetching weather. Check connection.";
+        }
+      }
+
+      function saveEventSettings() {
+        state.event.track = document.getElementById("editTrack").value;
+        state.event.temperature_f = parseInt(document.getElementById("editTemp").value) || null;
+        state.event.humidity_pct = parseInt(document.getElementById("editHumidity").value) || null;
+        state.event.notes = document.getElementById("editNotes").value.trim() || null;
+        // Make sure track exists in profiles
+        if (!state.tracks.find((t) => t.name === state.event.track)) {
+          state.tracks.push({ name: state.event.track, notes: "" });
+        }
+        updateEventBar();
+        updateEnvDisplay();
+        closeEventEditor();
+      }
+
+      // ===== TRACK PICKER =====
+      function openTrackPicker() {
+        const list = document.getElementById("trackList");
+        const editor = document.getElementById("trackEditor");
+        editor.style.display = "none";
+        document.getElementById("trackPickerActions").innerHTML =
+          `<button class="cancel-btn" onclick="closeTrackPicker()">Done</button>`;
+        list.innerHTML = "";
+        state.tracks.forEach((t) => {
+          const div = document.createElement("div");
+          const active = t.name === state.event.track;
+          div.style.cssText = `display:flex;align-items:center;gap:0.3rem;padding:0.3rem 0.4rem;border-radius:6px;cursor:pointer;${active ? "background:#1e1a0a;border:1px solid #f9a825;" : "border:1px solid #2a2a2a;"}background:${active ? "#1e1a0a" : "#0d0d0d"};`;
+          const nameDiv = document.createElement("div");
+          nameDiv.style.cssText = "flex:1;min-width:0;cursor:pointer;";
+          nameDiv.dataset.trackName = t.name;
+          nameDiv.innerHTML = `
+        <div style="font-size:0.75rem;color:${active ? "#f9a825" : "#ddd"};">${escHtml(t.name)}</div>
+        ${t.notes ? `<div style="font-size:0.5rem;color:#555;">${escHtml(t.notes)}</div>` : ""}
+      `;
+          nameDiv.addEventListener("click", function () {
+            selectTrack(this.dataset.trackName);
+          });
+          const editBtn = document.createElement("button");
+          editBtn.className = "at-track";
+          editBtn.innerHTML = "&#9998;";
+          editBtn.style.cssText =
+            "width:28px;height:28px;font-size:0.7rem;padding:0;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;";
+          editBtn.dataset.trackName = t.name;
+          editBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            editTrackNotes(this.dataset.trackName);
+          });
+          div.appendChild(nameDiv);
+          div.appendChild(editBtn);
+          list.appendChild(div);
+        });
+        document.getElementById("trackModal").classList.add("show");
+      }
+      function closeTrackPicker() {
+        document.getElementById("trackModal").classList.remove("show");
+      }
+      function selectTrack(name) {
+        state.event.track = name;
+        // Sync the event editor dropdown too
+        document.getElementById("editTrack").value = name;
+        updateEventBar();
+        openTrackPicker(); // re-render to show active state
+      }
+      function editTrackNotes(name) {
+        const t = state.tracks.find((t) => t.name === name);
+        if (!t) return;
+        document.getElementById("trackEditName").value = t.name;
+        document.getElementById("trackEditNotes").value = t.notes || "";
+        document.getElementById("trackEditor").style.display = "block";
+        document.getElementById("trackPickerActions").innerHTML = `
+      <button class="cancel-btn" onclick="openTrackPicker()">Cancel</button>
+      <button class="save-btn" onclick="saveTrackNotes()">Save</button>
+    `;
+      }
+      function saveTrackNotes() {
+        const name = document.getElementById("trackEditName").value.trim();
+        const notes = document.getElementById("trackEditNotes").value.trim();
+        let t = state.tracks.find((t) => t.name === name);
+        if (t) {
+          t.notes = notes;
+        } else {
+          state.tracks.push({ name, notes });
+        }
+        state.event.track = name;
+        document.getElementById("editTrack").value = name;
+        updateEventBar();
+        openTrackPicker();
+      }
+
+      // ===== ENVIRONMENT CONTROLS =====
+      function updateEnvDisplay() {
+        document.getElementById("displayTemp").innerHTML =
+          (state.event.temperature_f || "--") + "&deg;F";
+        document.getElementById("displayHumidity").textContent =
+          (state.event.humidity_pct || "--") + "%";
+      }
+      function adjustTemp(delta) {
+        const curr = state.event.temperature_f || 70;
+        state.event.temperature_f = Math.max(50, Math.min(110, curr + delta));
+        updateEnvDisplay();
+      }
+      function adjustHumidity(delta) {
+        const curr = state.event.humidity_pct || 30;
+        state.event.humidity_pct = Math.max(10, Math.min(90, curr + delta));
+        updateEnvDisplay();
+      }
+      function quickTemp() {
+        const common = [70, 75, 80, 82, 85, 90, 95];
+        const curr = state.event.temperature_f || 70;
+        const idx = common.indexOf(curr);
+        state.event.temperature_f = common[(idx + 1) % common.length];
+        updateEnvDisplay();
+      }
+      function quickHumidity() {
+        const common = [30, 35, 40, 45, 50, 55, 60, 65, 70];
+        const curr = state.event.humidity_pct || 45;
+        const idx = common.indexOf(curr);
+        state.event.humidity_pct = common[(idx + 1) % common.length];
+        updateEnvDisplay();
+      }
+
+      // ===== PAST EVENTS =====
+      function saveEvent() {
+        if (state.runs.length === 0) {
+          alert("No runs to save.");
+          return;
+        }
+        const entry = {
+          id: Date.now(),
+          date: state.event.date,
+          track: state.event.track,
+          temp: state.event.temperature_f,
+          humidity: state.event.humidity_pct,
+          pressure_inhg: null,
+          precip_prob: state.event.precip_prob,
+          notes: state.event.notes,
+          wins: currentTrack().wins || 0,
+          losses: currentTrack().losses || 0,
+          runs: JSON.parse(JSON.stringify(state.runs)),
+          carCount: carsAtTrack().length,
+          savedAt: new Date().toLocaleString(),
+        };
+        state.savedEvents.push(entry);
+        updateEventBar();
+      }
+      function openPastEvents() {
+        const list = document.getElementById("pastEventsList");
+        list.innerHTML = "";
+        if (state.savedEvents.length === 0) {
+          list.innerHTML =
+            '<div style="color:#555;font-size:0.65rem;padding:0.5rem 0;text-align:center;">No saved events yet. Tap <strong>Save</strong> on the event bar to save one.</div>';
+        } else {
+          [...state.savedEvents].reverse().forEach((e) => {
+            // Compute best ET per car for this event
+            const carBests = {};
+            e.runs.forEach((r) => {
+              if (r.et !== null && (!carBests[r.car_name] || r.et < carBests[r.car_name])) {
+                carBests[r.car_name] = r.et;
+              }
+            });
+            const bestsStr = Object.entries(carBests)
+              .sort((a, b) => a[1] - b[1])
+              .slice(0, 5)
+              .map(([name, et]) => `${name}: ${et.toFixed(4)}`)
+              .join(" &middot; ");
+            const div = document.createElement("div");
+            div.style.cssText = "padding:0.4rem;border-bottom:1px solid #1a1a1a;font-size:0.65rem;";
+            const wr = (e.wins || 0) + (e.losses || 0);
+            const wp = wr > 0 ? Math.round((e.wins / wr) * 100) + "%" : "";
+            div.innerHTML = `
+          <div style="color:#ddd;font-weight:600;">${escHtml(e.track)} &mdash; ${fmtDate(e.date)}</div>
+          <div style="color:#555;font-size:0.55rem;">${e.runs.length} runs &middot; ${e.carCount} cars &middot; ${e.temp || "--"}&deg;F / ${e.humidity || "--"}%${e.precip_prob !== undefined && e.precip_prob !== null ? " / &#127746; " + e.precip_prob + "%" : ""}</div>
+          <div style="color:#444;font-size:0.5rem;">${e.wins || 0}W ${e.losses || 0}L${wp ? " &middot; " + wp : ""} &middot; Saved ${e.savedAt}</div>
+        `;
+            div.addEventListener("click", () => loadPastEvent(e.id));
+            div.style.cursor = "pointer";
+            list.appendChild(div);
+          });
+        }
+        document.getElementById("pastEventsModal").classList.add("show");
+      }
+      function closePastEvents() {
+        document.getElementById("pastEventsModal").classList.remove("show");
+      }
+      function loadPastEvent(id) {
+        const e = state.savedEvents.find((ev) => ev.id === id);
+        if (!e) return;
+        if (state.runs.length > 0 && !confirm("Replace current runs with saved event data?"))
+          return;
+        state.event.date = e.date;
+        state.event.track = e.track;
+        state.event.temperature_f = e.temp;
+        state.event.humidity_pct = e.humidity;
+        state.event.precip_prob = e.precip_prob ?? 0;
+        state.event.notes = e.notes;
+        // Restore wins/losses to the past event's track
+        const pastTrack = state.tracks.find((t) => t.name === e.track);
+        if (pastTrack) {
+          pastTrack.wins = e.wins || 0;
+          pastTrack.losses = e.losses || 0;
+        }
+        state.runs = JSON.parse(JSON.stringify(e.runs));
+        state.feedFilter = null;
+        // Rebuild car list from runs
+        const carNames = [...new Set(e.runs.map((r) => r.car_name))];
+        carNames.forEach((name) => {
+          if (!state.cars.find((c) => c.name === name)) {
+            state.cars.push({
+              id: state.nextCarId++,
+              name,
+              detail: "",
+              img: "",
+              atTrack: true,
+              elim: false,
+            });
+          } else {
+            const c = state.cars.find((c) => c.name === name);
+            c.atTrack = true;
+          }
+        });
+        closePastEvents();
+        renderCarStrip();
+        updateEventBar();
+        updateEnvDisplay();
+        updateFeed();
+        if (state.cars.length > 0) selectCar(state.cars[0].id);
+      }
+
+      // ===== CAR MANAGER =====
+      function openCarManager() {
+        renderCarManager();
+        document.getElementById("carModal").classList.add("show");
+      }
+      function closeCarManager() {
+        document.getElementById("carModal").classList.remove("show");
+        // If selected car was removed from track, select another
+        if (state.selectedCarId) {
+          const c = getCar(state.selectedCarId);
+          if (!c || !c.atTrack) {
+            const first = carsAtTrack()[0];
+            if (first) selectCar(first.id);
+            else {
+              state.selectedCarId = null;
+              document.getElementById("submitBtn").disabled = true;
+            }
+          }
+        }
+        renderCarStrip();
+        updateEventBar();
+      }
+
+      function renderCarManager() {
+        const list = document.getElementById("carManagerList");
+        document.getElementById("carManagerCount").textContent = state.cars.length;
+        list.innerHTML = "";
+        state.cars.forEach((c) => {
+          const div = document.createElement("div");
+          div.className = "car-list-item";
+          const atTrackElim = c.atTrack
+            ? `
+        <button class="at-track ${c.elim ? "active" : ""}" style="border-color:${c.elim ? "#66bb6a" : "#333"};color:${c.elim ? "#66bb6a" : "#666"};" onclick="toggleElim(${c.id})">${c.elim ? "Elim" : "Practice"}</button>
+      `
+            : "";
+          const thumbHtml = c.img
+            ? `<div onclick="event.stopPropagation();setCarImage(${c.id})" style="cursor:pointer;width:28px;height:28px;border-radius:4px;overflow:hidden;flex-shrink:0;"><img src="${c.img}" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;" /></div>`
+            : `<div onclick="event.stopPropagation();setCarImage(${c.id})" style="cursor:pointer;width:28px;height:28px;border-radius:4px;background:#0d0d0d;border:1px solid #2a2a2a;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg></div>`;
+          div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:0.3rem;flex:1;min-width:0;">
+          ${thumbHtml}
+          <button class="at-track" onclick="event.stopPropagation();editCar(${c.id})" title="Edit name/details" style="width:28px;height:28px;font-size:0.8rem;padding:0;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;">&#9998;</button>
+          <div class="info" style="flex:1;min-width:0;">
+            <div class="name">${c.name}</div>
+            <div class="detail">${c.detail || ""}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.3rem;align-items:center;flex-shrink:0;">
+          ${atTrackElim}
+          <button class="at-track ${c.atTrack ? "active" : ""}" onclick="toggleAtTrack(${c.id})">${c.atTrack ? "At Track" : "Bench"}</button>
+          <button class="remove" onclick="removeCar(${c.id})">&times;</button>
+        </div>
+      `;
+          list.appendChild(div);
+        });
+      }
+
+      function toggleAtTrack(id) {
+        const c = getCar(id);
+        if (!c) return;
+        c.atTrack = !c.atTrack;
+        if (c.atTrack) c.elim = false;
+        renderCarManager();
+        saveState();
+      }
+
+      function setCarImage(id) {
+        const c = getCar(id);
+        if (!c) return;
+        // Try URL first via prompt
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function (ev) {
+            // Resize to thumbnail to keep localStorage small
+            const img = new Image();
+            img.onload = function () {
+              const maxW = 150,
+                maxH = 150;
+              let w = img.width,
+                h = img.height;
+              if (w > maxW || h > maxH) {
+                const r = Math.min(maxW / w, maxH / h);
+                w *= r;
+                h *= r;
+              }
+              const cnv = document.createElement("canvas");
+              cnv.width = w;
+              cnv.height = h;
+              cnv.getContext("2d").drawImage(img, 0, 0, w, h);
+              c.img = cnv.toDataURL("image/jpeg", 0.7);
+              renderCarStrip();
+              renderCarManager();
+              saveState();
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        };
+        input.click();
+      }
+
+      function editCar(id) {
+        const c = getCar(id);
+        if (!c) return;
+        document.getElementById("editCarName").value = c.name;
+        document.getElementById("editCarDetail").value = c.detail || "";
+        document.getElementById("editCarCrown").value = c.crown || "";
+        document.getElementById("editCarPinion").value = c.pinion || "";
+        document.getElementById("editCarRollout").value = c.rollout || "";
+        document.getElementById("editCarMotor").value = c.motor_amps || "";
+        document.getElementById("editCarMargin").value = c.safetyMargin || 0.005;
+        document.getElementById("editCarNotes").value = "";
+        document.getElementById("carEditModal").dataset.carId = id;
+        document.getElementById("carEditModal").classList.add("show");
+      }
+      function closeCarEditor() {
+        document.getElementById("carEditModal").classList.remove("show");
+      }
+      function saveCarEditor() {
+        const id = parseInt(document.getElementById("carEditModal").dataset.carId);
+        const c = getCar(id);
+        if (!c) return;
+        c.name = document.getElementById("editCarName").value.trim();
+        c.detail = document.getElementById("editCarDetail").value.trim();
+        const crown = document.getElementById("editCarCrown").value.trim();
+        const pinion = document.getElementById("editCarPinion").value.trim();
+        c.crown = crown ? parseInt(crown) : undefined;
+        c.pinion = pinion ? parseInt(pinion) : undefined;
+        c.rollout = document.getElementById("editCarRollout").value.trim() || undefined;
+        c.motor_amps = document.getElementById("editCarMotor").value.trim() || undefined;
+        const margin = parseFloat(document.getElementById("editCarMargin").value);
+        c.safetyMargin = !isNaN(margin) && margin > 0 ? margin : 0.005;
+        const notes = document.getElementById("editCarNotes").value.trim();
+        if (notes) {
+          // Log a system note about the change
+          state.runs.push({
+            id: state.nextRunId++,
+            car_id: id,
+            rt: null,
+            trap60: null,
+            trap330: null,
+            et: null,
+            mph: null,
+            lane: null,
+            session_type: "Practice",
+            round: null,
+            session_label: null,
+            comments: "[Setup] " + notes,
+            temp: state.event.temperature_f,
+            humidity: state.event.humidity,
+          });
+        }
+        renderCarStrip();
+        renderCarManager();
+        closeCarEditor();
+        saveState();
+      }
+
+      function adjustDial(id, lane, delta) {
+        const c = getCar(id);
+        if (!c) return;
+        const key = lane === "L" ? "dialTrimL" : "dialTrimR";
+        // Don't let dial go below 0
+        const runs = state.runs.filter((r) => r.car_id === id);
+        const laneETs = runs
+          .filter(
+            (r) =>
+              r.session_type === "Practice" &&
+              r.lane === (lane === "L" ? "Left" : "Right") &&
+              r.et !== null,
+          )
+          .map((r) => r.et);
+        const base = computeDial(laneETs, c.safetyMargin || 0.005) || 0;
+        const newTrim = (c[key] || 0) + delta;
+        if (base + newTrim >= 0) c[key] = newTrim;
+        saveState();
+        renderCarStrip();
+      }
+
+      function toggleElim(id) {
+        const c = getCar(id);
+        if (!c) return;
+        const currentElim = carsAtTrack().filter((x) => x.elim).length;
+        if (c.elim) {
+          c.elim = false;
+        } else {
+          if (currentElim >= 5) {
+            alert("Max 5 cars for elimination rounds. Deselect another car first.");
+            return;
+          }
+          c.elim = true;
+        }
+        renderCarStrip();
+        renderCarManager();
+        saveState();
+      }
+
+      function addCar() {
+        const input = document.getElementById("newCarName");
+        const name = input.value.trim();
+        if (!name) {
+          alert("Enter a car name.");
+          return;
+        }
+        state.cars.push({
+          id: state.nextCarId++,
+          name: name,
+          detail: "New build",
+          img: "",
+          atTrack: true,
+        });
+        input.value = "";
+        renderCarManager();
+        renderCarStrip();
+        updateEventBar();
+        saveState();
+      }
+
+      function removeCar(id) {
+        const c = getCar(id);
+        if (!c) return;
+        // Don't remove if it has runs
+        if (state.runs.some((r) => r.car_id === id)) {
+          if (
+            !confirm(
+              `"${c.name}" has ${state.runs.filter((r) => r.car_id === id).length} runs. Remove anyway?`,
+            )
+          )
+            return;
+        }
+        state.cars = state.cars.filter((c) => c.id !== id);
+        renderCarManager();
+        renderCarStrip();
+        updateEventBar();
+        saveState();
+      }
+
+      // ===== CLEAR =====
+      function clearAll() {
+        if (state.runs.length === 0) return;
+        if (!confirm("Clear all " + state.runs.length + " runs?")) return;
+        state.runs = [];
+        state.nextRunId = 1;
+        state.lastSubmit = null;
+        state.feedFilter = null;
+        updateEventBar();
+        updateFeed();
+        renderCarStrip();
+        document.getElementById("lastRunBar").innerHTML = "";
+        document.getElementById("submitBtn").disabled = true;
+      }
+
+      // ===== START =====
+      init();
+    </script>
+  </body>
+</html>
