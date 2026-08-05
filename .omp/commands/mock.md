@@ -14,7 +14,21 @@ Your job: figure out what they need, do it for them, explain only what matters.
 - Mocked UIs live in: `docs/mocked-ui/`
 - Each mock is a self-contained HTML file with inline CSS/JS
 - Current mocks: `track_entry.html` (Pit Sheet — Track Entry)
+- CANONICAL file for annotation/review: `docs/mocked-ui/track_entry.html` served at
+  `http://127.0.0.1:4174/track_entry.html`. Legacy mirror (do NOT use):
+  `E:/Ai Markdowns/Dale/datamodel/track_entry.html` (old working copy, port 8787)
 - Branch for mock work: `feat/track-entry-mock`
+- Annotation browser: **Firefox** (only browser with the onUI add-on). Add-on is a TEMP
+  install — Firefox wipes it on every restart. Add-on path:
+  `C:\Users\jason\.onui\extensions\current\manifest.json`
+- onUI local bridge (native host `com.onui.native`), used by the add-on to reach the
+  annotation store. Chain: registry
+  `HKCU\Software\Mozilla\NativeMessagingHosts\com.onui.native` → manifest
+  `C:\Users\jason\AppData\Roaming\onui\native-host\com.onui.native.json` → wrapper
+  `C:\Users\jason\AppData\Roaming\onui\runtime\onui-native-host.cmd` → node.
+  Health check: `node C:/Users/jason/.onui/mcp/v2.2.3/dist/bin/onui-cli.js doctor`
+  (native.roundtrip must be ok). Symptom of a broken add-on/bridge link:
+  "Local bridge: unavailable" in the onUI popup.
 
 ## What the user probably wants
 
@@ -68,6 +82,40 @@ Your job: figure out what they need, do it for them, explain only what matters.
      3. Run `node node_modules/@playwright/test/cli.js test` — suite must be green
      4. Include spec + test updates in the same commit as the mock change
    - Never ship a mock behavior change without its spec entry and its assertion test.
+
+## Annotation sessions (onUI review loop)
+
+User says "let me review", "annotate", "onUI", or wants to give feedback on a mock:
+run this exact flow. Do not improvise — the URLs and tools below are the contract.
+
+1. **Serve the canonical file** — start `node scripts/serve-mocked-ui.mjs` (port 4174)
+   as a background process. If it fails with EADDRINUSE, an older server is still
+   running — verify it serves the CURRENT file: compare
+   `curl -s http://127.0.0.1:4174/track_entry.html | md5sum` with
+   `md5sum docs/mocked-ui/track_entry.html` (must match), then reuse it.
+   Never serve the legacy datamodel mirror.
+2. **Load the onUI add-on in Firefox** — required after EVERY Firefox restart (temp
+   add-ons are wiped; symptom: "Local bridge: unavailable" in the popup). Do it for the
+   user:
+   - Run `"C:/Program Files/Mozilla Firefox/firefox.exe" "about:debugging#/runtime/this-firefox"`
+   - Tell the user, in plain words: click **"Load Temporary Add-on…"**, go to
+     `C:\Users\jason\.onui\extensions\current`, pick **`manifest.json`**, click Open.
+   - onUI icon appears in the toolbar. If the popup still says the bridge is unavailable,
+     run `onui-cli.js doctor` (Context above) and report the failing check.
+3. **Give the user the URL** — `http://127.0.0.1:4174/track_entry.html`
+   Tell them: click the onUI extension icon in their browser and toggle ON for this tab
+   (per-tab by design), then annotate: `Alt+A` element mode (Shift = multi-select),
+   `Alt+D` draw mode for regions.
+4. **Pull annotations** — onui-local MCP tools are mounted in every session
+   (user config `~/.omp/agent/mcp.json`): `onui_list_pages`, `onui_get_annotations`,
+   `onui_get_report` — keyed by the pageUrl above. Read them before editing anything.
+5. **Fix, confirm, codify** — implement the feedback in `docs/mocked-ui/track_entry.html`,
+   get user confirmation, then CODIFY (item 8: spec + assertions + green suite) and commit
+   spec + test + mock together.
+6. **Close the loop in the store** — mark handled annotations `resolved`
+   (`onui_update_annotation_metadata`). Annotations whose target elements were removed
+   cannot be opened/deleted from the extension UI — delete them via MCP
+   (`onui_delete_annotation`); don't leave orphans.
 
 ## Rules
 
