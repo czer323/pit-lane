@@ -512,6 +512,21 @@
       .env-val:active {
         background: #2a2a2a;
       }
+      .env-val-input {
+        font-family: "Courier New", monospace;
+        font-size: 0.75rem;
+        color: #f9a825;
+        background: #0d0d0d;
+        border: 1px solid #f9a82544;
+        border-radius: 3px;
+        width: 52px;
+        text-align: center;
+        padding: 0.05rem 0.1rem;
+        outline: none;
+      }
+      .env-val-input:focus {
+        border-color: #f9a825;
+      }
 
       .submit-btn {
         width: 100%;
@@ -1305,12 +1320,16 @@
             <div class="env-controls">
               <div class="env-group">
                 <button class="env-btn" onclick="adjustTemp(-1)">&#8722;</button>
-                <span class="env-val" id="displayTemp" onclick="quickTemp()">82&deg;F</span>
+                <span class="env-val" id="displayTemp" onclick="editEnvValue('temperature_f')"
+                  >82&deg;F</span
+                >
                 <button class="env-btn" onclick="adjustTemp(1)">&#43;</button>
               </div>
               <div class="env-group">
                 <button class="env-btn" onclick="adjustHumidity(-5)">&#8722;</button>
-                <span class="env-val" id="displayHumidity" onclick="quickHumidity()">45%</span>
+                <span class="env-val" id="displayHumidity" onclick="editEnvValue('humidity_pct')"
+                  >45%</span
+                >
                 <button class="env-btn" onclick="adjustHumidity(5)">&#43;</button>
               </div>
             </div>
@@ -1321,15 +1340,6 @@
               type="text"
               id="inputComments"
               placeholder="Felt loose, flinched, sensor glitch..."
-              autocomplete="off"
-            />
-          </div>
-          <div class="field-row comment-row" style="margin-top: -0.2rem">
-            <label>Session</label>
-            <input
-              type="text"
-              id="inputSession"
-              placeholder="e.g. Baseline, Gear 9/35, Tires B"
               autocomplete="off"
             />
           </div>
@@ -2048,7 +2058,7 @@
         const et = rawET ? parseFloat(rawET) : null;
         const mph = rawMPH ? parseFloat(rawMPH) : null;
         const comments = document.getElementById("inputComments").value.trim() || null;
-        const session_label = document.getElementById("inputSession").value.trim() || null;
+        const session_label = document.getElementById("inputSession")?.value.trim() || null;
         const round = state.currentSession === "Elimination" ? state.currentRound : null;
 
         if (!rt && !sixty && !et) {
@@ -2152,7 +2162,8 @@
         document.getElementById("inputET").value = "";
         document.getElementById("inputMPH").value = "";
         document.getElementById("inputComments").value = "";
-        document.getElementById("inputSession").value = "";
+        const sessionInput = document.getElementById("inputSession");
+        if (sessionInput) sessionInput.value = "";
 
         // Auto-toggle lane
         setLane(state.currentLane === "Left" ? "Right" : "Left");
@@ -2718,19 +2729,46 @@
         state.event.humidity_pct = Math.max(10, Math.min(90, curr + delta));
         updateEnvDisplay();
       }
-      function quickTemp() {
-        const common = [70, 75, 80, 82, 85, 90, 95];
-        const curr = state.event.temperature_f || 70;
-        const idx = common.indexOf(curr);
-        state.event.temperature_f = common[(idx + 1) % common.length];
-        updateEnvDisplay();
-      }
-      function quickHumidity() {
-        const common = [30, 35, 40, 45, 50, 55, 60, 65, 70];
-        const curr = state.event.humidity_pct || 45;
-        const idx = common.indexOf(curr);
-        state.event.humidity_pct = common[(idx + 1) % common.length];
-        updateEnvDisplay();
+      const ENV_LIMITS = {
+        temperature_f: { min: 50, max: 110, suffix: "\u00b0F" },
+        humidity_pct: { min: 10, max: 90, suffix: "%" },
+      };
+      function editEnvValue(key) {
+        const span = document.getElementById(
+          key === "temperature_f" ? "displayTemp" : "displayHumidity",
+        );
+        if (!span || span.dataset.editing) return;
+        const limits = ENV_LIMITS[key];
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.className = "env-val-input";
+        input.value = String(state.event[key] ?? "");
+        span.dataset.editing = "1";
+        span.textContent = "";
+        span.appendChild(input);
+        input.focus();
+        input.select();
+        const commit = () => {
+          if (!span.dataset.editing) return;
+          const n = parseFloat(input.value.trim());
+          if (!isNaN(n) && isFinite(n)) {
+            state.event[key] = Math.max(limits.min, Math.min(limits.max, Math.round(n)));
+          }
+          span.removeAttribute("data-editing");
+          updateEnvDisplay();
+        };
+        input.addEventListener("keydown", (e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Escape") {
+            span.removeAttribute("data-editing");
+            updateEnvDisplay();
+          }
+        });
+        input.addEventListener("blur", commit);
       }
 
       // ===== PAST EVENTS =====
