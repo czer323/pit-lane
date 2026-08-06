@@ -17,6 +17,11 @@ say() { printf '\033[1;36m%s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 
 say "== 1. Sync main =="
+current=$(git branch --show-current)
+if [ "$current" != "main" ]; then
+  warn "   not on main (on '$current') — checkout main first"
+  git checkout main
+fi
 git fetch --prune origin
 if ! git merge-base --is-ancestor main origin/main; then
   git pull --ff-only origin main
@@ -48,7 +53,11 @@ for ref in $(git ls-remote origin 'refs/heads/*' | awk '{print $2}' | sed 's|ref
     if $DRY_RUN; then
       warn "   [dry-run] would delete remote branch: $ref"
     else
-      git push origin --delete "$ref" >/dev/null 2>&1 && warn "   deleted remote branch: $ref"
+      if ! git push origin --delete "$ref" 2>&1 | tee /dev/stderr; then
+        warn "   FAILED to delete remote branch: $ref"
+      else
+        warn "   deleted remote branch: $ref"
+      fi
     fi
   fi
 done
@@ -62,11 +71,19 @@ fi
 
 say "== 5. Orphan card tripwire (read-only) =="
 if command -v br >/dev/null 2>&1 && [ -d .beads ]; then
-  orphans=$(br orphans 2>/dev/null || true)
-  if echo "$orphans" | grep -q "No orphan\|No orphaned"; then
-    say "   no orphan cards — tracker is clean"
+  # Key off the tool's exit code, not output string matching. br orphans exits 0
+  # when clean; non-zero means a real error (or orphans found) — surface it.
+  orphans=$(br orphans 2>&1)
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    if echo "$orphans" | grep -qi "no orphan"; then
+      say "   no orphan cards — tracker is clean"
+    else
+      warn "   ⚠ OPEN CARDS REFERENCED IN MERGED COMMITS — write substantive closes:"
+      echo "$orphans"
+    fi
   else
-    warn "   ⚠ OPEN CARDS REFERENCED IN MERGED COMMITS — write substantive closes:"
+    warn "   br orphans exited $rc — could not check for orphan cards:"
     echo "$orphans"
   fi
 else
