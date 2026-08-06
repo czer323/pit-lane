@@ -8,7 +8,127 @@ import {
   sqliteView,
   check,
 } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
+
+/**
+ * user — Better Auth user table (CLI-generated, authoritative).
+ * Identity for authenticated users. Google OAuth links via `account` table.
+ */
+export const user = sqliteTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
+  image: text("image"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+/**
+ * session — Better Auth session table (CLI-generated, authoritative).
+ * Active login sessions. Tied to a user via userId.
+ */
+export const session = sqliteTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [index("session_userId_idx").on(table.userId)],
+);
+
+/**
+ * account — Better Auth account table (CLI-generated, authoritative).
+ * OAuth provider links (e.g. Google). Google sub lives in accountId where
+ * providerId = 'google'.
+ */
+export const account = sqliteTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", {
+      mode: "timestamp_ms",
+    }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", {
+      mode: "timestamp_ms",
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("account_userId_idx").on(table.userId)],
+);
+
+/**
+ * verification — Better Auth verification table (CLI-generated, authoritative).
+ * Email verification / password reset tokens.
+ */
+export const verification = sqliteTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
 
 /**
  * cars — Present-state build sheet.
@@ -18,6 +138,8 @@ import { sql } from "drizzle-orm";
  */
 export const cars = sqliteTable("cars", {
   carId: integer("car_id").primaryKey({ autoIncrement: true }),
+  /** Owning user (better-auth text ID). NULL = pre-ownership legacy data. */
+  userId: text("user_id").references(() => user.id),
   /** Display name. Used in entry form, brackets, reports. */
   name: text("name").notNull().unique(),
   /** Vehicle body model (e.g. "S10", "'64 Impala", "VW Beetle"). */
@@ -95,6 +217,8 @@ export const events = sqliteTable(
   {
     /** Unique identifier. */
     eventId: integer("event_id").primaryKey({ autoIncrement: true }),
+    /** Owning user (better-auth text ID). NULL = pre-ownership legacy data. */
+    userId: text("user_id").references(() => user.id),
     /** ISO 8601 date of event. */
     eventDate: text("event_date").notNull(),
     /** Track name. Same date can have different tracks. */
@@ -123,6 +247,8 @@ export const runs = sqliteTable(
   {
     /** Unique identifier. */
     runId: integer("run_id").primaryKey({ autoIncrement: true }),
+    /** Owning user (better-auth text ID). NULL = pre-ownership legacy data. */
+    userId: text("user_id").references(() => user.id),
     /** Which event this run belongs to. */
     eventId: integer("event_id")
       .notNull()
