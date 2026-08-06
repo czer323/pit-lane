@@ -1,4 +1,15 @@
 #!/bin/sh
+# Beads tracker sync (optional, graceful): export .beads/issues.jsonl before
+# staging so every commit captures tracker state. Skips cleanly when br is not
+# installed (e.g. Windows collaborators) — the tracker stays in the repo, but
+# syncing it is a local accelerator, not a requirement.
+if command -v br >/dev/null 2>&1 && [ -d .beads ]; then
+  br sync --flush-only
+  git add .beads/ 2>/dev/null
+else
+  echo "note: br not found — skipping beads sync"
+fi
+
 # Block commits on protected branches
 protected_branches="^(main|master)$"
 branch=$(git rev-parse --abbrev-ref HEAD)
