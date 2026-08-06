@@ -261,6 +261,26 @@ git commit -m "..."     # Commit everything
 git push                # Push to remote
 ```
 
+**Start-of-session cleanup ritual** (after pulling main forward):
+
+```bash
+git pull --ff-only origin main   # bring main forward
+git branch --merged main | grep -vE '^(\*|main)' | xargs -r git branch -d  # prune local merged
+# Delete merged remote branches (list via `git ls-remote origin | grep refs/heads`, verify each is an ancestor of main, then `git push origin --delete <branch>`)
+br sync --flush-only             # ensure tracker JSONL is current
+br orphans                       # read-only tripwire: open cards referenced in merged commits
+```
+
+### Commit message convention
+
+Include the card ID in the commit message so git history ties to the tracker:
+
+```bash
+git commit -m "feat: add auth schema (pit-lane-y8w.3)"
+```
+
+This makes `br orphans` and `br changelog` work deterministically — they read card IDs from commit messages. Close cards with substantive detail (approach, lessons, verification), not "for the sake of closing."
+
 ### Best Practices
 
 - Check `br ready` at session start to find available work
