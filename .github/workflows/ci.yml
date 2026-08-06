@@ -3,6 +3,9 @@ name: CI
 # Fork wake-up test: forcing workflow re-evaluation on push (PR branch).
 on:
   pull_request:
+  # Manual trigger: escape hatch for fork-Actions dormancy. When a PR gets no
+  # CI run (fork pipeline idle), dispatch this workflow to wake it and verify.
+  workflow_dispatch:
 
 permissions:
   contents: read
