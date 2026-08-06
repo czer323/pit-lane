@@ -1,5 +1,9 @@
 allowBuilds:
   esbuild: true
+  # Transitive deps of @better-auth/cli (unused adapters). Their build scripts
+  # are not needed — declare explicitly to keep fresh installs (CI) passing.
+  "@prisma/client": false
+  better-sqlite3: false
 
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.6

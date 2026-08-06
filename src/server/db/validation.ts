@@ -4,18 +4,32 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { cars, carSnapshots, events, runs } from "./schema";
 
 // ─── Base schemas (auto-generated from Drizzle) ────────────────────────
+// userId is a nullable ownership column set by auth middleware later, so it
+// is optional at the validation boundary (legacy data has no owner yet).
 
-export const insertCarSchema = createInsertSchema(cars);
-export const selectCarSchema = createSelectSchema(cars);
+export const insertCarSchema = createInsertSchema(cars).extend({
+  userId: z.string().nullish(),
+});
+export const selectCarSchema = createSelectSchema(cars).extend({
+  userId: z.string().nullish(),
+});
 
 export const insertCarSnapshotSchema = createInsertSchema(carSnapshots);
 export const selectCarSnapshotSchema = createSelectSchema(carSnapshots);
 
-export const insertEventSchema = createInsertSchema(events);
-export const selectEventSchema = createSelectSchema(events);
+export const insertEventSchema = createInsertSchema(events).extend({
+  userId: z.string().nullish(),
+});
+export const selectEventSchema = createSelectSchema(events).extend({
+  userId: z.string().nullish(),
+});
 
-export const insertRunSchema = createInsertSchema(runs);
-export const selectRunSchema = createSelectSchema(runs);
+export const insertRunSchema = createInsertSchema(runs).extend({
+  userId: z.string().nullish(),
+});
+export const selectRunSchema = createSelectSchema(runs).extend({
+  userId: z.string().nullish(),
+});
 
 // ─── Validation helpers ────────────────────────────────────────────────
 
