@@ -23,17 +23,29 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     eq: (col: any, val: any) => ({ field: col.name, value: val }),
     desc: (col: any) => ({ field: col.name, dir: "desc" }),
     asc: (col: any) => ({ field: col.name, dir: "asc" }),
+    and: (...conds: any[]) => ({ and: conds }),
   };
 });
+
+// Mock the session helper: tests run authenticated as a fixed user.
+const { getCurrentUserIdMock } = vi.hoisted(() => ({
+  getCurrentUserIdMock: vi.fn<() => Promise<string | null>>(),
+}));
+vi.mock("~/lib/session", () => ({
+  getCurrentUserId: getCurrentUserIdMock,
+}));
 
 import { createCar, listCars, getCar, updateCar, deleteCar, addSnapshot } from "./cars";
 
 import { createMockDb } from "../db/test-helpers";
 // ─── Helpers ────────────────────────────────────────────────────────────
-// Note: drizzle-orm operators are already mocked above (eq/desc/asc)
+// Note: drizzle-orm operators are already mocked above (eq/desc/asc/and)
+
+const TEST_USER = "test-user-1";
 
 beforeEach(() => {
   getDbMock.mockReturnValue(createMockDb());
+  getCurrentUserIdMock.mockResolvedValue(TEST_USER);
 });
 
 // ─── createCar ──────────────────────────────────────────────────────────
@@ -232,12 +244,14 @@ describe("deleteCar", () => {
     await db.insert(schema.events).values({
       eventDate: "2026-07-28",
       track: "Test Track",
+      userId: TEST_USER,
     });
     const [event] = await db.select().from(schema.events);
     await db.insert(schema.runs).values({
       eventId: event.eventId!,
       carId,
       sessionType: "Practice",
+      userId: TEST_USER,
     });
 
     await expect(deleteCar(carId)).rejects.toThrow("Cannot delete car");

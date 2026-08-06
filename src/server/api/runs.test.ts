@@ -19,16 +19,28 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     eq: (col: any, val: any) => ({ field: col.name, value: val }),
     desc: (col: any) => ({ field: col.name, dir: "desc" }),
     asc: (col: any) => ({ field: col.name, dir: "asc" }),
+    and: (...conds: any[]) => ({ and: conds }),
   };
 });
+
+// Mock the session helper: tests run authenticated as a fixed user.
+const { getCurrentUserIdMock } = vi.hoisted(() => ({
+  getCurrentUserIdMock: vi.fn<() => Promise<string | null>>(),
+}));
+vi.mock("~/lib/session", () => ({
+  getCurrentUserId: getCurrentUserIdMock,
+}));
 
 import { createRun, listRuns, getRun, updateRun, deleteRun } from "./runs";
 import { createMockDb } from "../db/test-helpers";
 
 // ─── Setup ──────────────────────────────────────────────────────────────
 
+const TEST_USER = "test-user-1";
+
 beforeEach(() => {
   getDbMock.mockReturnValue(createMockDb());
+  getCurrentUserIdMock.mockResolvedValue(TEST_USER);
 });
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -37,8 +49,9 @@ async function seedEventAndCar(db: any) {
   await db.insert(schema.events).values({
     eventDate: "2026-07-28",
     track: "Atlanta Dragway",
+    userId: TEST_USER,
   });
-  await db.insert(schema.cars).values({ name: "Test Car" });
+  await db.insert(schema.cars).values({ name: "Test Car", userId: TEST_USER });
   const [event] = await db.select().from(schema.events);
   const [car] = await db.select().from(schema.cars);
   return { eventId: event.eventId!, carId: car.carId! };
@@ -173,7 +186,7 @@ describe("listRuns", () => {
     const { eventId, carId: car1 } = await seedEventAndCar(db);
 
     // Add a second car
-    await db.insert(schema.cars).values({ name: "Alpha Car" });
+    await db.insert(schema.cars).values({ name: "Alpha Car", userId: TEST_USER });
     const [car2] = await db
       .select()
       .from(schema.cars)

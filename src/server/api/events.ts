@@ -1,16 +1,28 @@
 "use server";
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 import { getDb } from "~/server/db";
 import { events, runs } from "~/server/db/schema";
 import { insertEventSchema } from "~/server/db/validation";
+import { getCurrentUserId } from "~/lib/session";
 
 // ─── Input schema (derived, not modifying validation.ts) ─────────────
 
 const eventInputSchema = insertEventSchema.omit({
   eventId: true,
 });
+
+// ─── Ownership helper ────────────────────────────────────────────────
+
+/** Require a signed-in user; throw if not authenticated. */
+async function requireUserId(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("Unauthorized: sign in to manage events");
+  }
+  return userId;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -45,6 +57,7 @@ export async function createEvent(input: unknown) {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const db = getDb();
 
   // Check natural key uniqueness
@@ -55,13 +68,21 @@ export async function createEvent(input: unknown) {
     );
   }
 
-  const [created] = await db.insert(events).values(data).returning();
+  const [created] = await db
+    .insert(events)
+    .values({ ...data, userId })
+    .returning();
   return created;
 }
 
 export async function listEvents() {
+  const userId = await requireUserId();
   const db = getDb();
-  const allEvents = await db.select().from(events).orderBy(desc(events.eventDate));
+  const allEvents = await db
+    .select()
+    .from(events)
+    .where(eq(events.userId, userId))
+    .orderBy(desc(events.eventDate));
 
   const result = await Promise.all(
     allEvents.map(async (event) => {
@@ -76,7 +97,11 @@ export async function listEvents() {
 export async function getEvent(id: number) {
   const db = getDb();
 
-  const [event] = await db.select().from(events).where(eq(events.eventId, id));
+  const userId = await requireUserId();
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventId, id), eq(events.userId, userId)));
   if (!event) {
     throw new Error(`Event not found: ${id}`);
   }
@@ -91,10 +116,14 @@ export async function updateEvent(id: number, input: unknown) {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const db = getDb();
 
-  // Check event exists
-  const [current] = await db.select().from(events).where(eq(events.eventId, id));
+  // Check event exists (owned)
+  const [current] = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventId, id), eq(events.userId, userId)));
   if (!current) {
     throw new Error(`Event not found: ${id}`);
   }
@@ -113,10 +142,14 @@ export async function updateEvent(id: number, input: unknown) {
 }
 
 export async function deleteEvent(id: number) {
+  const userId = await requireUserId();
   const db = getDb();
 
-  // Safety check: block if runs reference this event
-  const eventRuns = await db.select().from(runs).where(eq(runs.eventId, id));
+  // Safety check: block if runs reference this event (owned)
+  const eventRuns = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.eventId, id), eq(runs.userId, userId)));
   if (eventRuns.length > 0) {
     throw new Error(`Cannot delete event ${id}: ${eventRuns.length} run(s) reference this event`);
   }

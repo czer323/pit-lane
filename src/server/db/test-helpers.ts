@@ -102,8 +102,16 @@ export function createMockDb() {
 
   function filterRows(tname: string, rows: any[], cond: any): any[] {
     if (!cond) return rows;
+    // Support `and(...)` conditions: { and: [cond1, cond2, ...] }
+    if (cond.and && Array.isArray(cond.and)) {
+      return rows.filter((r) => cond.and.every((c: any) => matchesRow(tname, r, c)));
+    }
+    return rows.filter((r) => matchesRow(tname, r, cond));
+  }
+
+  function matchesRow(tname: string, row: any, cond: any): boolean {
     const prop = mapField(tname, cond.field);
-    return rows.filter((r) => r[prop] === cond.value);
+    return row[prop] === cond.value;
   }
 
   function sortRows(tname: string, rows: any[], order: any): any[] {
@@ -168,10 +176,9 @@ export function createMockDb() {
           returning: () => {
             const tname = ensureTable(table);
             const store = stores.get(tname)!;
-            const prop = mapField(tname, cond.field);
             const updated: any[] = [];
             for (const [id, row] of store) {
-              if (row[prop] === cond.value) {
+              if (filterRows(tname, [row], cond).length > 0) {
                 const merged = { ...row, ...data };
                 store.set(id, merged);
                 updated.push(merged);
@@ -182,9 +189,8 @@ export function createMockDb() {
           then: (resolve: any, reject: any) => {
             const tname = ensureTable(table);
             const store = stores.get(tname)!;
-            const prop = mapField(tname, cond.field);
             for (const [id, row] of store) {
-              if (row[prop] === cond.value) {
+              if (filterRows(tname, [row], cond).length > 0) {
                 store.set(id, { ...row, ...data });
               }
             }
@@ -199,10 +205,9 @@ export function createMockDb() {
         returning: () => {
           const tname = ensureTable(table);
           const store = stores.get(tname)!;
-          const prop = mapField(tname, cond.field);
           const deleted: any[] = [];
           for (const [id, row] of store) {
-            if (row[prop] === cond.value) {
+            if (filterRows(tname, [row], cond).length > 0) {
               store.delete(id);
               deleted.push(row);
             }
@@ -212,9 +217,8 @@ export function createMockDb() {
         then: (resolve: any, reject: any) => {
           const tname = ensureTable(table);
           const store = stores.get(tname)!;
-          const prop = mapField(tname, cond.field);
           for (const [id, row] of store) {
-            if (row[prop] === cond.value) {
+            if (filterRows(tname, [row], cond).length > 0) {
               store.delete(id);
             }
           }

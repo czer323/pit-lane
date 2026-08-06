@@ -1,11 +1,12 @@
 "use server";
 
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "~/server/db";
 import { cars, carSnapshots, runs } from "~/server/db/schema";
 import { insertCarSchema, insertCarSnapshotSchema } from "~/server/db/validation";
+import { getCurrentUserId } from "~/lib/session";
 
 // ─── Input schemas (derived, not modifying validation.ts) ─────────────
 
@@ -18,6 +19,17 @@ const carInputSchema = insertCarSchema.omit({
 const snapshotInputSchema = insertCarSnapshotSchema
   .omit({ snapshotId: true, carId: true })
   .extend({ snapshotDate: z.string().optional() });
+
+// ─── Ownership helpers ─────────────────────────────────────────────────
+
+/** Require a signed-in user; throw if not authenticated. */
+async function requireUserId(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("Unauthorized: sign in to manage cars");
+  }
+  return userId;
+}
 
 // ─── Computation helpers ───────────────────────────────────────────────
 
@@ -50,6 +62,7 @@ export async function createCar(input: unknown) {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const gearRatio = computeGearRatio(data.crown, data.pinion) ?? data.gearRatio ?? null;
   const rollout = computeRollout(data.tireDiaMm, gearRatio) ?? data.rollout ?? null;
   const now = new Date().toISOString();
@@ -59,6 +72,7 @@ export async function createCar(input: unknown) {
     .insert(cars)
     .values({
       ...data,
+      userId,
       gearRatio,
       rollout,
       createdAt: now,
@@ -70,14 +84,19 @@ export async function createCar(input: unknown) {
 }
 
 export async function listCars() {
+  const userId = await requireUserId();
   const db = getDb();
-  return await db.select().from(cars).orderBy(asc(cars.name));
+  return await db.select().from(cars).where(eq(cars.userId, userId)).orderBy(asc(cars.name));
 }
 
 export async function getCar(id: number) {
+  const userId = await requireUserId();
   const db = getDb();
 
-  const [car] = await db.select().from(cars).where(eq(cars.carId, id));
+  const [car] = await db
+    .select()
+    .from(cars)
+    .where(and(eq(cars.carId, id), eq(cars.userId, userId)));
   if (!car) {
     throw new Error(`Car not found: ${id}`);
   }
@@ -98,9 +117,13 @@ export async function updateCar(id: number, input: unknown) {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const db = getDb();
 
-  const [current] = await db.select().from(cars).where(eq(cars.carId, id));
+  const [current] = await db
+    .select()
+    .from(cars)
+    .where(and(eq(cars.carId, id), eq(cars.userId, userId)));
   if (!current) {
     throw new Error(`Car not found: ${id}`);
   }
@@ -144,12 +167,25 @@ export async function updateCar(id: number, input: unknown) {
 }
 
 export async function deleteCar(id: number) {
+  const userId = await requireUserId();
   const db = getDb();
 
-  // Safety check: block if runs reference this car
-  const carRuns = await db.select().from(runs).where(eq(runs.carId, id));
+  // Safety check: block if runs reference this car (scoped to owner)
+  const carRuns = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.carId, id), eq(runs.userId, userId)));
   if (carRuns.length > 0) {
     throw new Error(`Cannot delete car ${id}: ${carRuns.length} run(s) reference this car`);
+  }
+
+  // Verify ownership before deleting
+  const [owned] = await db
+    .select({ carId: cars.carId })
+    .from(cars)
+    .where(and(eq(cars.carId, id), eq(cars.userId, userId)));
+  if (!owned) {
+    throw new Error(`Car not found: ${id}`);
   }
 
   // Delete snapshots first (no ON DELETE CASCADE in schema)
@@ -172,9 +208,19 @@ export async function addSnapshot(carId: number, input: unknown) {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const snapshotDate = data.snapshotDate ?? new Date().toISOString();
 
   const db = getDb();
+  // Verify car ownership before adding a snapshot
+  const [owned] = await db
+    .select({ carId: cars.carId })
+    .from(cars)
+    .where(and(eq(cars.carId, carId), eq(cars.userId, userId)));
+  if (!owned) {
+    throw new Error(`Car not found: ${carId}`);
+  }
+
   const [created] = await db
     .insert(carSnapshots)
     .values({

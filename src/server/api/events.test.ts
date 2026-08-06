@@ -23,16 +23,28 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     eq: (col: any, val: any) => ({ field: col.name, value: val }),
     desc: (col: any) => ({ field: col.name, dir: "desc" }),
     asc: (col: any) => ({ field: col.name, dir: "asc" }),
+    and: (...conds: any[]) => ({ and: conds }),
   };
 });
+
+// Mock the session helper: tests run authenticated as a fixed user.
+const { getCurrentUserIdMock } = vi.hoisted(() => ({
+  getCurrentUserIdMock: vi.fn<() => Promise<string | null>>(),
+}));
+vi.mock("~/lib/session", () => ({
+  getCurrentUserId: getCurrentUserIdMock,
+}));
 
 import { createEvent, listEvents, getEvent, updateEvent, deleteEvent } from "./events";
 import { createMockDb } from "../db/test-helpers";
 
 // ─── Setup ──────────────────────────────────────────────────────────────
 
+const TEST_USER = "test-user-1";
+
 beforeEach(() => {
   getDbMock.mockReturnValue(createMockDb());
+  getCurrentUserIdMock.mockResolvedValue(TEST_USER);
 });
 
 // ─── createEvent ────────────────────────────────────────────────────────
@@ -328,6 +340,7 @@ describe("deleteEvent", () => {
       eventId,
       carId: 1,
       sessionType: "Practice",
+      userId: TEST_USER,
     });
 
     await expect(deleteEvent(eventId)).rejects.toThrow("Cannot delete event");
