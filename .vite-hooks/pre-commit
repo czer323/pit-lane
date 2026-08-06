@@ -4,7 +4,14 @@
 # installed (e.g. Windows collaborators) — the tracker stays in the repo, but
 # syncing it is a local accelerator, not a requirement.
 if command -v br >/dev/null 2>&1 && [ -d .beads ]; then
-  br sync --flush-only
+  # If a merge/rebase left conflict markers in the JSONL, regenerate it from
+  # the authoritative DB (--force) rather than committing a corrupted file.
+  if grep -q '^<<<<<<<\|^>>>>>>>' .beads/issues.jsonl 2>/dev/null; then
+    echo "note: beads jsonl has conflict markers — regenerating from DB"
+    br sync --flush-only --force
+  else
+    br sync --flush-only
+  fi
   git add .beads/ 2>/dev/null
 else
   echo "note: br not found — skipping beads sync"
