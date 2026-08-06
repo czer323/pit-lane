@@ -1,5 +1,6 @@
 name: CI
 
+# Fork wake-up test: forcing workflow re-evaluation on push (PR branch).
 on:
   pull_request:
 
