@@ -1,5 +1,5 @@
 {
-  "installCommand": null,
-  "buildCommand": null,
-  "framework": null
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nitro",
+  "outputDirectory": ".vercel/output"
 }
