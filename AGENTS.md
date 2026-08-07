@@ -65,22 +65,25 @@ Reference Documentation:
 
 ### Branch Protection
 
-**`main` is protected at both levels:**
+**`main` and `dev` are protected:**
 
-- **Remote** — GitHub ruleset blocks direct pushes to `main`. All changes require a pull request.
-- **Local** — Pre-commit hook blocks commits on `main`/`master`. Error message tells you to create a feature branch.
+- **`main`** — release branch. GitHub ruleset blocks direct pushes. All changes require a pull request. Only stable, tested code from `dev` merges here.
+- **`dev`** — integration branch. GitHub ruleset blocks direct pushes. All changes require a pull request gated by CI. Feature work lands here first, stabilizes, then promotes to `main`.
+
+**Local** — Pre-commit hook blocks commits on `main`/`master`. Error message tells you to create a feature branch.
 
 ### Process
 
-1. **Create a feature branch** from `main` before any implementation:
+1. **Create a feature branch** from `dev` before any implementation:
 
    ```bash
    git checkout -b feat/description
    ```
 
 2. **Make changes, commit, push** to your feature branch.
-3. **Open a pull request** to `main` on GitHub.
-4. **Merge via PR** — never push or merge directly to `main`.
+3. **Open a pull request to `dev`** on GitHub (CI gates it).
+4. **Merge via PR** — never push or merge directly to `dev`.
+5. **Promote to `main`** only when dev is stable: open a PR from `dev` → `main`, then merge for release.
 
 ### Conventional Branch
 
