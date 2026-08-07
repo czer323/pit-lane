@@ -295,3 +295,50 @@ describe("addSnapshot", () => {
     expect(new Date(snapshot.snapshotDate).getTime()).not.toBeNaN();
   });
 });
+
+// ─── Ownership / adversarial tests ─────────────────────────────────────
+
+describe("ownership isolation", () => {
+  it("throws Unauthorized when signed out (no user session)", async () => {
+    getCurrentUserIdMock.mockResolvedValue(null);
+
+    await expect(createCar({ name: "No Auth" })).rejects.toThrow("Unauthorized");
+    await expect(listCars()).rejects.toThrow("Unauthorized");
+  });
+
+  it("throws a distinguishable Unauthorized error (message survives server-fn boundary)", async () => {
+    getCurrentUserIdMock.mockResolvedValue(null);
+
+    // Note: the server-function boundary strips custom error properties (like
+    // status), but the message survives. The auth card (pit-lane-5dn) will
+    // handle the 401-vs-500 distinction at the route boundary.
+    await expect(listCars()).rejects.toThrow("Unauthorized");
+  });
+
+  it("does not list another user's cars", async () => {
+    const user1 = await createCar({ name: "User 1 Car" });
+
+    // Switch to a different user
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+
+    const cars = await listCars();
+    expect(cars).toHaveLength(0);
+    expect(cars.find((c) => c.carId === user1.carId)).toBeUndefined();
+  });
+
+  it("cannot get, update, or delete another user's car", async () => {
+    const user1 = await createCar({ name: "User 1 Car" });
+
+    // Switch to a different user
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+
+    await expect(getCar(user1.carId!)).rejects.toThrow("Car not found");
+    await expect(updateCar(user1.carId!, { name: "Hijacked" })).rejects.toThrow("Car not found");
+    await expect(deleteCar(user1.carId!)).rejects.toThrow("Car not found");
+
+    // Original user's car is unchanged
+    getCurrentUserIdMock.mockResolvedValue(TEST_USER);
+    const [car] = await listCars();
+    expect(car.name).toBe("User 1 Car");
+  });
+});

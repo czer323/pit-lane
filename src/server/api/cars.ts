@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getDb } from "~/server/db";
 import { cars, carSnapshots, runs } from "~/server/db/schema";
 import { insertCarSchema, insertCarSnapshotSchema } from "~/server/db/validation";
-import { getCurrentUserId } from "~/lib/session";
+import { getCurrentUserId, UnauthorizedError } from "~/lib/session";
 
 // ─── Input schemas (derived, not modifying validation.ts) ─────────────
 
@@ -26,7 +26,7 @@ const snapshotInputSchema = insertCarSnapshotSchema
 async function requireUserId(): Promise<string> {
   const userId = await getCurrentUserId();
   if (!userId) {
-    throw new Error("Unauthorized: sign in to manage cars");
+    throw new UnauthorizedError("Unauthorized: sign in to manage cars");
   }
   return userId;
 }
@@ -160,7 +160,7 @@ export async function updateCar(id: number, input: unknown) {
       rollout,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(cars.carId, id))
+    .where(and(eq(cars.carId, id), eq(cars.userId, userId)))
     .returning();
 
   return updated;
@@ -192,7 +192,10 @@ export async function deleteCar(id: number) {
   await db.delete(carSnapshots).where(eq(carSnapshots.carId, id));
 
   // Delete car
-  const [deleted] = await db.delete(cars).where(eq(cars.carId, id)).returning();
+  const [deleted] = await db
+    .delete(cars)
+    .where(and(eq(cars.carId, id), eq(cars.userId, userId)))
+    .returning();
 
   if (!deleted) {
     throw new Error(`Car not found: ${id}`);

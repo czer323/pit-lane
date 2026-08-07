@@ -2,6 +2,19 @@ import { getWebRequest } from "@solidjs/start/http";
 import { auth } from "./auth";
 
 /**
+ * Error thrown when a signed-in user is required but no valid session exists.
+ * Carries a 401 status so callers can distinguish auth failures from server
+ * errors (which are 500).
+ */
+export class UnauthorizedError extends Error {
+  status = 401;
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+/**
  * Get the current session from the incoming request headers.
  * Server-only. Returns null when no valid session (signed out).
  */

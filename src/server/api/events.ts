@@ -5,7 +5,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "~/server/db";
 import { events, runs } from "~/server/db/schema";
 import { insertEventSchema } from "~/server/db/validation";
-import { getCurrentUserId } from "~/lib/session";
+import { getCurrentUserId, UnauthorizedError } from "~/lib/session";
 
 // ─── Input schema (derived, not modifying validation.ts) ─────────────
 
@@ -19,7 +19,7 @@ const eventInputSchema = insertEventSchema.omit({
 async function requireUserId(): Promise<string> {
   const userId = await getCurrentUserId();
   if (!userId) {
-    throw new Error("Unauthorized: sign in to manage events");
+    throw new UnauthorizedError("Unauthorized: sign in to manage events");
   }
   return userId;
 }
@@ -60,8 +60,12 @@ export async function createEvent(input: unknown) {
   const userId = await requireUserId();
   const db = getDb();
 
-  // Check natural key uniqueness
-  const matches = await db.select().from(events).where(eq(events.eventDate, data.eventDate));
+  // Check natural key uniqueness (scoped to owner — other users' same-date
+  // events must not block this user's event)
+  const matches = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventDate, data.eventDate), eq(events.userId, userId)));
   if (naturalKeyConflict(matches, undefined, data.track, data.sessionLabel)) {
     throw new Error(
       `Duplicate event: ${data.eventDate}, ${data.track}, ${data.sessionLabel ?? "(no session)"}`,
@@ -86,7 +90,10 @@ export async function listEvents() {
 
   const result = await Promise.all(
     allEvents.map(async (event) => {
-      const eventRuns = await db.select().from(runs).where(eq(runs.eventId, event.eventId!));
+      const eventRuns = await db
+        .select()
+        .from(runs)
+        .where(and(eq(runs.eventId, event.eventId!), eq(runs.userId, userId)));
       return { ...event, runCount: eventRuns.length };
     }),
   );
@@ -128,15 +135,22 @@ export async function updateEvent(id: number, input: unknown) {
     throw new Error(`Event not found: ${id}`);
   }
 
-  // Check natural key uniqueness (excluding current event)
-  const matches = await db.select().from(events).where(eq(events.eventDate, data.eventDate));
+  // Check natural key uniqueness (excluding current event, scoped to owner)
+  const matches = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventDate, data.eventDate), eq(events.userId, userId)));
   if (naturalKeyConflict(matches, id, data.track, data.sessionLabel)) {
     throw new Error(
       `Duplicate event: ${data.eventDate}, ${data.track}, ${data.sessionLabel ?? "(no session)"}`,
     );
   }
 
-  const [updated] = await db.update(events).set(data).where(eq(events.eventId, id)).returning();
+  const [updated] = await db
+    .update(events)
+    .set(data)
+    .where(and(eq(events.eventId, id), eq(events.userId, userId)))
+    .returning();
 
   return updated;
 }
@@ -154,7 +168,10 @@ export async function deleteEvent(id: number) {
     throw new Error(`Cannot delete event ${id}: ${eventRuns.length} run(s) reference this event`);
   }
 
-  const [deleted] = await db.delete(events).where(eq(events.eventId, id)).returning();
+  const [deleted] = await db
+    .delete(events)
+    .where(and(eq(events.eventId, id), eq(events.userId, userId)))
+    .returning();
   if (!deleted) {
     throw new Error(`Event not found: ${id}`);
   }

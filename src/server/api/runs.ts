@@ -3,10 +3,10 @@
 import { eq, and } from "drizzle-orm";
 
 import { getDb } from "~/server/db";
-import { runs, cars, carSnapshots } from "~/server/db/schema";
+import { runs, cars, carSnapshots, events } from "~/server/db/schema";
 import { insertRunSchema, validateRun } from "~/server/db/validation";
 import type { ValidationWarning } from "~/server/db/validation";
-import { getCurrentUserId } from "~/lib/session";
+import { getCurrentUserId, UnauthorizedError } from "~/lib/session";
 
 // ─── Input schema (derived, not modifying validation.ts) ─────────────
 
@@ -49,7 +49,7 @@ export interface RunResult {
 async function requireUserId(): Promise<string> {
   const userId = await getCurrentUserId();
   if (!userId) {
-    throw new Error("Unauthorized: sign in to manage runs");
+    throw new UnauthorizedError("Unauthorized: sign in to manage runs");
   }
   return userId;
 }
@@ -91,14 +91,19 @@ async function enrichRuns(
 ): Promise<RunWithCar[]> {
   const allCars = await db.select().from(cars).where(eq(cars.userId, userId));
   const carById = new Map<number, Record<string, unknown>>();
+  const ownerCarIds = new Set<number>();
   for (const c of allCars) {
     carById.set(c.carId as number, c);
+    ownerCarIds.add(c.carId as number);
   }
 
+  // Only load snapshots belonging to the owner's cars
   const allSnapshots = await db.select().from(carSnapshots);
   const snapById = new Map<number, Record<string, unknown>>();
   for (const s of allSnapshots) {
-    snapById.set(s.snapshotId as number, s);
+    if (ownerCarIds.has(s.carId as number)) {
+      snapById.set(s.snapshotId as number, s);
+    }
   }
 
   return runRows.map((run) => {
@@ -113,14 +118,23 @@ async function enrichRuns(
   });
 }
 
-/** Build snapshot map for validateRun when carVersionId is provided. */
+/** Build snapshot map for validateRun when carVersionId is provided (owner-scoped). */
 async function buildSnapshotMap(
   db: ReturnType<typeof getDb>,
+  userId: string,
 ): Promise<Map<number, { carId: number }> | undefined> {
+  const ownerCars = await db.select().from(cars).where(eq(cars.userId, userId));
+  const ownerCarIds = new Set<number>();
+  for (const c of ownerCars) {
+    ownerCarIds.add(c.carId as number);
+  }
+
   const all = await db.select().from(carSnapshots);
   const map = new Map<number, { carId: number }>();
   for (const s of all) {
-    map.set(s.snapshotId as number, { carId: s.carId as number });
+    if (ownerCarIds.has(s.carId as number)) {
+      map.set(s.snapshotId as number, { carId: s.carId as number });
+    }
   }
   return map;
 }
@@ -137,8 +151,24 @@ export async function createRun(input: unknown): Promise<RunResult> {
   const userId = await requireUserId();
   const db = getDb();
 
-  // Build snapshot map if carVersionId is present
-  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
+  // Verify the caller owns the referenced event and car (cross-tenant guard)
+  const [ownedEvent] = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventId, data.eventId), eq(events.userId, userId)));
+  if (!ownedEvent) {
+    throw new Error(`Event not found: ${data.eventId}`);
+  }
+  const [ownedCar] = await db
+    .select()
+    .from(cars)
+    .where(and(eq(cars.carId, data.carId), eq(cars.userId, userId)));
+  if (!ownedCar) {
+    throw new Error(`Car not found: ${data.carId}`);
+  }
+
+  // Build snapshot map if carVersionId is present (owner-scoped)
+  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db, userId) : undefined;
 
   // Normalize nulls for validateRun and DB insert
   const normalized = normalizeNulls(data as Record<string, unknown>);
@@ -225,8 +255,8 @@ export async function updateRun(id: number, input: unknown): Promise<RunResult> 
     throw new Error(`Run not found: ${id}`);
   }
 
-  // Build snapshot map if carVersionId is present
-  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
+  // Build snapshot map if carVersionId is present (owner-scoped)
+  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db, userId) : undefined;
 
   // Normalize nulls for validateRun and DB update
   const normalized = normalizeNulls(data as Record<string, unknown>);
