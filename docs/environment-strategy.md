@@ -50,6 +50,23 @@
 3. **Production is gated.** Deploying to production is an intentional, deliberate act — not a way to test.
 4. **One database per stage.** Local uses its own isolated database; dev and production use their own cloud databases. No stage shares another stage's data.
 
+## The branch model (how code flows)
+
+```
+feature branch → dev (integration) → main (release)
+```
+
+- **`dev`** is the integration branch. All feature work merges here via pull request, gated by CI and review. This is where things stabilize and get tested on the dev environment.
+- **`main`** is the release branch. Only stable, tested code from `dev` merges here — it's the final gate before production.
+- Feature branches never go directly to `main`. They land in `dev` first, prove stable, then `dev` → `main` for release.
+
+**Branch protections:**
+
+- **`dev`**: PR required, CI must pass, no direct pushes, no force-push/deletion. Mirrors the production discipline, one level earlier.
+- **`main`**: PR required, CI must pass, no direct pushes. Release-only.
+
+**Versioning (for actual releases):** when `dev` is stable and merges to `main`, a version tag marks the release. The tag is what deploys to production.
+
 ## Shortcuts (the "if you do this, that happens" map)
 
 | Command                  | What it does                            | Use when                                |
