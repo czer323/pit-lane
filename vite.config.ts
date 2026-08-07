@@ -108,6 +108,10 @@ export default defineConfig({
   },
   plugins: lazyPlugins(() => {
     if (process.env.VITEST) return [solid({ hot: false })];
-    return [solidStart(), nitro({ preset: "vercel" }), solid()];
+    return [
+      solidStart({ middleware: "src/middleware/index.ts" }),
+      nitro({ preset: "vercel" }),
+      solid(),
+    ];
   }),
 });
