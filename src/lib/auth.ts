@@ -9,6 +9,11 @@ const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
 export const auth = betterAuth({
   baseURL,
+  // Accept requests from the production domain plus Vercel preview deployments
+  // (which get unique URLs). Without this, better-auth rejects the OAuth
+  // request with "Invalid origin" when the user is on a preview URL.
+  // NOTE: better-auth uses wildcard patterns (* / ?), not regex, here.
+  trustedOrigins: [baseURL, "https://pit-lane-*.vercel.app"],
   basePath: "/api/auth",
   database: drizzleAdapter(getDb(), {
     provider: "sqlite",
