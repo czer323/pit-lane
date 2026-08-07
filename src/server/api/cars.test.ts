@@ -309,9 +309,12 @@ describe("ownership isolation", () => {
   it("throws a distinguishable Unauthorized error (message survives server-fn boundary)", async () => {
     getCurrentUserIdMock.mockResolvedValue(null);
 
-    // Note: the server-function boundary strips custom error properties (like
-    // status), but the message survives. The auth card (pit-lane-5dn) will
-    // handle the 401-vs-500 distinction at the route boundary.
+    // Note: the server-function boundary does not set an HTTP 401; thrown
+    // errors cross as 200 + X-Error(message) for both auth failures and server
+    // errors. Seroval preserves the status property (and name/message) on the
+    // client-side error, but `instanceof UnauthorizedError` is lost. The auth
+    // card (pit-lane-5dn) will handle the wire-level 401-vs-500 distinction at
+    // the route boundary.
     await expect(listCars()).rejects.toThrow("Unauthorized");
   });
 
