@@ -3,13 +3,19 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "dev:host": "vp dev --host",
     "build": "vp build",
-    "deploy:preview": "bash scripts/deploy-preview.sh",
-    "preview": "vp preview",
     "check": "vp check",
     "test": "vp test",
-    "prepare": "vp config",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
+    "db:migrate:local": "drizzle-kit migrate --config=drizzle.local.config.ts",
+    "db:migrate:remote": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "deploy:preview": "bash scripts/deploy-preview.sh",
+    "deploy:dev": "vercel deploy",
+    "deploy:prod": "vercel --prod",
+    "prepare": "vp config"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.26",
