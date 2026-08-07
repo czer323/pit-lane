@@ -23,16 +23,28 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     eq: (col: any, val: any) => ({ field: col.name, value: val }),
     desc: (col: any) => ({ field: col.name, dir: "desc" }),
     asc: (col: any) => ({ field: col.name, dir: "asc" }),
+    and: (...conds: any[]) => ({ and: conds }),
   };
 });
+
+// Mock the session helper: tests run authenticated as a fixed user.
+const { getCurrentUserIdMock } = vi.hoisted(() => ({
+  getCurrentUserIdMock: vi.fn<() => Promise<string | null>>(),
+}));
+vi.mock("~/lib/session", () => ({
+  getCurrentUserId: getCurrentUserIdMock,
+}));
 
 import { createEvent, listEvents, getEvent, updateEvent, deleteEvent } from "./events";
 import { createMockDb } from "../db/test-helpers";
 
 // ─── Setup ──────────────────────────────────────────────────────────────
 
+const TEST_USER = "test-user-1";
+
 beforeEach(() => {
   getDbMock.mockReturnValue(createMockDb());
+  getCurrentUserIdMock.mockResolvedValue(TEST_USER);
 });
 
 // ─── createEvent ────────────────────────────────────────────────────────
@@ -166,11 +178,13 @@ describe("listEvents", () => {
       eventId,
       carId: 1,
       sessionType: "Practice",
+      userId: TEST_USER,
     });
     await db.insert(schema.runs).values({
       eventId,
       carId: 2,
       sessionType: "Elimination",
+      userId: TEST_USER,
     });
 
     const all = await listEvents();
@@ -328,6 +342,7 @@ describe("deleteEvent", () => {
       eventId,
       carId: 1,
       sessionType: "Practice",
+      userId: TEST_USER,
     });
 
     await expect(deleteEvent(eventId)).rejects.toThrow("Cannot delete event");
@@ -339,5 +354,43 @@ describe("deleteEvent", () => {
 
   it("throws when event not found", async () => {
     await expect(deleteEvent(99999)).rejects.toThrow("Event not found");
+  });
+});
+
+// ─── Ownership / adversarial tests ─────────────────────────────────────
+
+describe("ownership isolation", () => {
+  it("throws Unauthorized when signed out", async () => {
+    getCurrentUserIdMock.mockResolvedValue(null);
+    await expect(listEvents()).rejects.toThrow("Unauthorized");
+  });
+
+  it("does not list another user's events", async () => {
+    await createEvent({ eventDate: "2026-07-28", track: "Atlanta Dragway" });
+
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+    const events = await listEvents();
+    expect(events).toHaveLength(0);
+  });
+
+  it("does not treat another user's same-date event as a duplicate", async () => {
+    // User 1 creates an event
+    await createEvent({ eventDate: "2026-07-28", track: "Atlanta Dragway" });
+
+    // User 2 can create the SAME date/track — not a cross-tenant duplicate
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+    const ev = await createEvent({ eventDate: "2026-07-28", track: "Atlanta Dragway" });
+    expect(ev.eventId).toBeDefined();
+  });
+
+  it("cannot get, update, or delete another user's event", async () => {
+    const mine = await createEvent({ eventDate: "2026-07-28", track: "Mine" });
+
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+    await expect(getEvent(mine.eventId!)).rejects.toThrow("Event not found");
+    await expect(
+      updateEvent(mine.eventId!, { eventDate: "2026-07-29", track: "Hijacked" }),
+    ).rejects.toThrow("Event not found");
+    await expect(deleteEvent(mine.eventId!)).rejects.toThrow("Event not found");
   });
 });

@@ -19,16 +19,28 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     eq: (col: any, val: any) => ({ field: col.name, value: val }),
     desc: (col: any) => ({ field: col.name, dir: "desc" }),
     asc: (col: any) => ({ field: col.name, dir: "asc" }),
+    and: (...conds: any[]) => ({ and: conds }),
   };
 });
+
+// Mock the session helper: tests run authenticated as a fixed user.
+const { getCurrentUserIdMock } = vi.hoisted(() => ({
+  getCurrentUserIdMock: vi.fn<() => Promise<string | null>>(),
+}));
+vi.mock("~/lib/session", () => ({
+  getCurrentUserId: getCurrentUserIdMock,
+}));
 
 import { createRun, listRuns, getRun, updateRun, deleteRun } from "./runs";
 import { createMockDb } from "../db/test-helpers";
 
 // ─── Setup ──────────────────────────────────────────────────────────────
 
+const TEST_USER = "test-user-1";
+
 beforeEach(() => {
   getDbMock.mockReturnValue(createMockDb());
+  getCurrentUserIdMock.mockResolvedValue(TEST_USER);
 });
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -37,8 +49,9 @@ async function seedEventAndCar(db: any) {
   await db.insert(schema.events).values({
     eventDate: "2026-07-28",
     track: "Atlanta Dragway",
+    userId: TEST_USER,
   });
-  await db.insert(schema.cars).values({ name: "Test Car" });
+  await db.insert(schema.cars).values({ name: "Test Car", userId: TEST_USER });
   const [event] = await db.select().from(schema.events);
   const [car] = await db.select().from(schema.cars);
   return { eventId: event.eventId!, carId: car.carId! };
@@ -173,7 +186,7 @@ describe("listRuns", () => {
     const { eventId, carId: car1 } = await seedEventAndCar(db);
 
     // Add a second car
-    await db.insert(schema.cars).values({ name: "Alpha Car" });
+    await db.insert(schema.cars).values({ name: "Alpha Car", userId: TEST_USER });
     const [car2] = await db
       .select()
       .from(schema.cars)
@@ -317,5 +330,53 @@ describe("deleteRun", () => {
 
   it("throws when run not found", async () => {
     await expect(deleteRun(99999)).rejects.toThrow("Run not found");
+  });
+});
+
+// ─── Ownership / adversarial tests ─────────────────────────────────────
+
+describe("ownership isolation", () => {
+  it("throws Unauthorized when signed out", async () => {
+    getCurrentUserIdMock.mockResolvedValue(null);
+    await expect(listRuns(1)).rejects.toThrow("Unauthorized");
+  });
+
+  it("cannot create a run referencing another user's event or car", async () => {
+    const db = getDbMock();
+    const { eventId, carId } = await seedEventAndCar(db);
+
+    // Switch to a different user who owns neither
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+
+    // Event ownership checked first: another user's event is rejected
+    await expect(createRun({ eventId, carId, sessionType: "Practice", et: 4.3 })).rejects.toThrow(
+      "Event not found",
+    );
+
+    // Even with an event the caller owns, a car they don't own is rejected.
+    // Create a user-2 event, then try user-2's event with user-1's car.
+    await db.insert(schema.events).values({
+      eventDate: "2026-07-29",
+      track: "User 2 Track",
+      userId: "test-user-2",
+    });
+    const allEvents = await db.select().from(schema.events);
+    const ev2 = allEvents.find((e: any) => e.userId === "test-user-2");
+    await expect(
+      createRun({ eventId: ev2.eventId!, carId, sessionType: "Practice", et: 4.3 }),
+    ).rejects.toThrow("Car not found");
+  });
+
+  it("does not list, get, or delete another user's runs", async () => {
+    const db = getDbMock();
+    const { eventId, carId } = await seedEventAndCar(db);
+    const { run } = await createRun({ eventId, carId, sessionType: "Practice", et: 4.3 });
+
+    getCurrentUserIdMock.mockResolvedValue("test-user-2");
+    const runs = await listRuns(eventId);
+    expect(runs).toHaveLength(0);
+
+    await expect(getRun(run.runId!)).rejects.toThrow("Run not found");
+    await expect(deleteRun(run.runId!)).rejects.toThrow("Run not found");
   });
 });

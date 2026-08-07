@@ -1,11 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { getDb } from "~/server/db";
-import { runs, cars, carSnapshots } from "~/server/db/schema";
+import { runs, cars, carSnapshots, events } from "~/server/db/schema";
 import { insertRunSchema, validateRun } from "~/server/db/validation";
 import type { ValidationWarning } from "~/server/db/validation";
+import { getCurrentUserId, UnauthorizedError } from "~/lib/session";
 
 // ─── Input schema (derived, not modifying validation.ts) ─────────────
 
@@ -42,6 +43,17 @@ export interface RunResult {
   warnings: ValidationWarning[];
 }
 
+// ─── Ownership helper ────────────────────────────────────────────────
+
+/** Require a signed-in user; throw if not authenticated. */
+async function requireUserId(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new UnauthorizedError("Unauthorized: sign in to manage runs");
+  }
+  return userId;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────
 
 const NULLABLE_FIELDS = [
@@ -75,17 +87,23 @@ function normalizeNulls(obj: Record<string, unknown>): Record<string, unknown> {
 async function enrichRuns(
   db: ReturnType<typeof getDb>,
   runRows: Array<Record<string, unknown>>,
+  userId: string,
 ): Promise<RunWithCar[]> {
-  const allCars = await db.select().from(cars);
+  const allCars = await db.select().from(cars).where(eq(cars.userId, userId));
   const carById = new Map<number, Record<string, unknown>>();
+  const ownerCarIds = new Set<number>();
   for (const c of allCars) {
     carById.set(c.carId as number, c);
+    ownerCarIds.add(c.carId as number);
   }
 
+  // Only load snapshots belonging to the owner's cars
   const allSnapshots = await db.select().from(carSnapshots);
   const snapById = new Map<number, Record<string, unknown>>();
   for (const s of allSnapshots) {
-    snapById.set(s.snapshotId as number, s);
+    if (ownerCarIds.has(s.carId as number)) {
+      snapById.set(s.snapshotId as number, s);
+    }
   }
 
   return runRows.map((run) => {
@@ -100,14 +118,23 @@ async function enrichRuns(
   });
 }
 
-/** Build snapshot map for validateRun when carVersionId is provided. */
+/** Build snapshot map for validateRun when carVersionId is provided (owner-scoped). */
 async function buildSnapshotMap(
   db: ReturnType<typeof getDb>,
+  userId: string,
 ): Promise<Map<number, { carId: number }> | undefined> {
+  const ownerCars = await db.select().from(cars).where(eq(cars.userId, userId));
+  const ownerCarIds = new Set<number>();
+  for (const c of ownerCars) {
+    ownerCarIds.add(c.carId as number);
+  }
+
   const all = await db.select().from(carSnapshots);
   const map = new Map<number, { carId: number }>();
   for (const s of all) {
-    map.set(s.snapshotId as number, { carId: s.carId as number });
+    if (ownerCarIds.has(s.carId as number)) {
+      map.set(s.snapshotId as number, { carId: s.carId as number });
+    }
   }
   return map;
 }
@@ -121,10 +148,27 @@ export async function createRun(input: unknown): Promise<RunResult> {
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const db = getDb();
 
-  // Build snapshot map if carVersionId is present
-  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
+  // Verify the caller owns the referenced event and car (cross-tenant guard)
+  const [ownedEvent] = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.eventId, data.eventId), eq(events.userId, userId)));
+  if (!ownedEvent) {
+    throw new Error(`Event not found: ${data.eventId}`);
+  }
+  const [ownedCar] = await db
+    .select()
+    .from(cars)
+    .where(and(eq(cars.carId, data.carId), eq(cars.userId, userId)));
+  if (!ownedCar) {
+    throw new Error(`Car not found: ${data.carId}`);
+  }
+
+  // Build snapshot map if carVersionId is present (owner-scoped)
+  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db, userId) : undefined;
 
   // Normalize nulls for validateRun and DB insert
   const normalized = normalizeNulls(data as Record<string, unknown>);
@@ -138,21 +182,28 @@ export async function createRun(input: unknown): Promise<RunResult> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db2 = db as any;
-  const [created] = await db2.insert(runs).values(normalized).returning();
+  const [created] = await db2
+    .insert(runs)
+    .values({ ...normalized, userId })
+    .returning();
 
-  const [enriched] = await enrichRuns(db, [created]);
+  const [enriched] = await enrichRuns(db, [created], userId);
   return { run: enriched, warnings: validated.warnings };
 }
 
 export async function listRuns(eventId: number): Promise<RunWithCar[]> {
+  const userId = await requireUserId();
   const db = getDb();
-  const allRuns = await db.select().from(runs).where(eq(runs.eventId, eventId));
+  const allRuns = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.eventId, eventId), eq(runs.userId, userId)));
 
   if (allRuns.length === 0) {
     return [];
   }
 
-  const enriched = await enrichRuns(db, allRuns);
+  const enriched = await enrichRuns(db, allRuns, userId);
 
   // Sort by heat (sessionType, round) then car name
   const sessionRank: Record<string, number> = { Practice: 0, Elimination: 1 };
@@ -170,14 +221,18 @@ export async function listRuns(eventId: number): Promise<RunWithCar[]> {
 }
 
 export async function getRun(id: number): Promise<RunWithCar> {
+  const userId = await requireUserId();
   const db = getDb();
 
-  const [runRow] = await db.select().from(runs).where(eq(runs.runId, id));
+  const [runRow] = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.runId, id), eq(runs.userId, userId)));
   if (!runRow) {
     throw new Error(`Run not found: ${id}`);
   }
 
-  const [enriched] = await enrichRuns(db, [runRow]);
+  const [enriched] = await enrichRuns(db, [runRow], userId);
   return enriched;
 }
 
@@ -188,16 +243,20 @@ export async function updateRun(id: number, input: unknown): Promise<RunResult> 
   }
 
   const data = parsed.data;
+  const userId = await requireUserId();
   const db = getDb();
 
-  // Check run exists
-  const [current] = await db.select().from(runs).where(eq(runs.runId, id));
+  // Check run exists (owned)
+  const [current] = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.runId, id), eq(runs.userId, userId)));
   if (!current) {
     throw new Error(`Run not found: ${id}`);
   }
 
-  // Build snapshot map if carVersionId is present
-  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db) : undefined;
+  // Build snapshot map if carVersionId is present (owner-scoped)
+  const snapshots = data.carVersionId != null ? await buildSnapshotMap(db, userId) : undefined;
 
   // Normalize nulls for validateRun and DB update
   const normalized = normalizeNulls(data as Record<string, unknown>);
@@ -213,18 +272,22 @@ export async function updateRun(id: number, input: unknown): Promise<RunResult> 
   const db2 = db as any;
   const [updated] = await db2.update(runs).set(normalized).where(eq(runs.runId, id)).returning();
 
-  const [enriched] = await enrichRuns(db, [updated]);
+  const [enriched] = await enrichRuns(db, [updated], userId);
   return { run: enriched, warnings: validated.warnings };
 }
 
 export async function deleteRun(id: number): Promise<RunWithCar> {
+  const userId = await requireUserId();
   const db = getDb();
 
-  const [deleted] = await db.delete(runs).where(eq(runs.runId, id)).returning();
+  const [deleted] = await db
+    .delete(runs)
+    .where(and(eq(runs.runId, id), eq(runs.userId, userId)))
+    .returning();
   if (!deleted) {
     throw new Error(`Run not found: ${id}`);
   }
 
-  const [enriched] = await enrichRuns(db, [deleted]);
+  const [enriched] = await enrichRuns(db, [deleted], userId);
   return enriched;
 }
