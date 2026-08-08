@@ -1,17 +1,14 @@
 name: CI
 
-# Fork wake-up test: forcing workflow re-evaluation on push (PR branch).
 on:
   pull_request:
-  # Manual trigger: escape hatch for fork-Actions dormancy. When a PR gets no
-  # CI run (fork pipeline idle), dispatch this workflow to wake it and verify.
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  ci:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -25,11 +22,43 @@ jobs:
 
       - run: vp check
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+
+      - run: vp install
+
       - run: vp test -- --run
 
-      # E2E gate: the mock UI behavior contract (SLOT-19). Playwright suite runs
-      # against the static mock served by scripts/serve-mocked-ui.mjs — no build
-      # needed. --with-deps installs the runner's system libraries.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [check, test]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+
+      - run: vp install
+
+      # Cache Playwright browsers — keyed on the lockfile so it rotates when
+      # the Playwright version changes. Saves ~30-60s per run vs installing
+      # chromium + system deps from scratch every time.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - run: vp exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - run: vp run test:e2e
