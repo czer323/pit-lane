@@ -3,8 +3,14 @@ import { auth } from "./auth";
 
 /**
  * Error thrown when a signed-in user is required but no valid session exists.
- * Carries a 401 status so callers can distinguish auth failures from server
- * errors (which are 500).
+ * Carries a 401 status so callers can read `err.status === 401` to distinguish
+ * auth failures from server errors.
+ *
+ * Boundary note: the server-function boundary does not translate this into an
+ * HTTP 401; thrown errors cross as 200 + X-Error(message) for both auth
+ * failures and server errors. Seroval preserves `status`, `name`, and
+ * `message` as own properties on the client-side error, but the subclass
+ * prototype (and therefore `instanceof`) is lost.
  */
 export class UnauthorizedError extends Error {
   status = 401;
