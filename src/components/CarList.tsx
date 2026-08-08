@@ -1,11 +1,18 @@
-import { createResource, For, Show, Suspense } from "solid-js";
+import { createResource, For, Show, Suspense, type Accessor } from "solid-js";
 import { A } from "@solidjs/router";
 import { listCars } from "~/server/api/cars";
 import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 
-export default function CarList() {
-  const [cars] = createResource(() => listCars());
+interface CarListProps {
+  refreshKey: Accessor<number>;
+}
+
+export default function CarList(props: CarListProps) {
+  const [cars] = createResource(
+    () => props.refreshKey(),
+    () => listCars(),
+  );
 
   return (
     <Suspense fallback={<p class="text-sm text-muted-foreground">Loading…</p>}>

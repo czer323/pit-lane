@@ -8,7 +8,11 @@ function fieldId(name: string) {
   return `field-${name.replace(/\s+/g, "-").toLowerCase()}`;
 }
 
-export default function AddCarForm() {
+interface AddCarFormProps {
+  onCarAdded?: () => void;
+}
+
+export default function AddCarForm(props: AddCarFormProps) {
   const [name, setName] = createSignal("");
   const [body, setBody] = createSignal("");
   const [chassis, setChassis] = createSignal("");
@@ -52,6 +56,7 @@ export default function AddCarForm() {
       });
       setSuccess(`${name()} added!`);
       resetForm();
+      props.onCarAdded?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add car");
     } finally {

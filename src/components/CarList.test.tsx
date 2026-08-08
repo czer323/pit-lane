@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { createSignal } from "solid-js";
 import { render, screen } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
 import { listCars } from "~/server/api/cars";
@@ -21,6 +22,9 @@ const wrapper = (props: { children: unknown }) => (
   <MetaProvider>{props.children as string}</MetaProvider>
 );
 
+// Create a stable signal that tests can share
+const [refreshKey] = createSignal(0);
+
 describe("CarList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,7 +32,7 @@ describe("CarList", () => {
 
   it("shows empty state when no cars", async () => {
     mockedListCars.mockResolvedValue([]);
-    render(() => <CarList />, { wrapper });
+    render(() => <CarList refreshKey={refreshKey} />, { wrapper });
     expect(await screen.findByText(/no cars yet/i)).toBeInTheDocument();
   });
 
@@ -57,7 +61,7 @@ describe("CarList", () => {
         updatedAt: "2026-02-01",
       },
     ] as Awaited<ReturnType<typeof listCars>>);
-    render(() => <CarList />, { wrapper });
+    render(() => <CarList refreshKey={refreshKey} />, { wrapper });
     expect(await screen.findByText("Lightning")).toBeInTheDocument();
     expect(screen.getByText("Thunder")).toBeInTheDocument();
   });
@@ -76,7 +80,7 @@ describe("CarList", () => {
         updatedAt: "2026-01-01",
       },
     ] as Awaited<ReturnType<typeof listCars>>);
-    render(() => <CarList />, { wrapper });
+    render(() => <CarList refreshKey={refreshKey} />, { wrapper });
     expect(await screen.findByText(/at track/i)).toBeInTheDocument();
   });
 });
