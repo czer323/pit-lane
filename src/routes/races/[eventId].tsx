@@ -1,5 +1,5 @@
 import { Title } from "@solidjs/meta";
-import { A } from "@solidjs/router";
+import { A, useParams } from "@solidjs/router";
 import { For, Show, createResource, createSignal, Suspense } from "solid-js";
 import { getEvent } from "~/server/api/events";
 import { listRuns, deleteRun } from "~/server/api/runs";
@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 
-export default function EventRuns(props: { params: { eventId: string } }) {
-  const eventId = () => Number(props.params.eventId);
+export default function EventRuns() {
+  const params = useParams();
+  const eventId = () => Number(params.eventId);
   const [event] = createResource(eventId, getEvent);
   const [runs, { refetch }] = createResource(eventId, listRuns);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
@@ -81,10 +82,10 @@ export default function EventRuns(props: { params: { eventId: string } }) {
                   </CardHeader>
                   <CardContent>
                     <div class="flex flex-wrap gap-2">
-                      <A href={`/races/${props.params.eventId}/quick`}>
+                      <A href={`/races/${params.eventId}/quick`}>
                         <Button size="sm">Quick Entry</Button>
                       </A>
-                      <A href={`/races/${props.params.eventId}/batch`}>
+                      <A href={`/races/${params.eventId}/batch`}>
                         <Button size="sm" variant="outline">
                           Batch Entry
                         </Button>
@@ -177,7 +178,7 @@ export default function EventRuns(props: { params: { eventId: string } }) {
                                       {run.win ? "Win" : "Loss"}
                                     </Badge>
                                   </Show>
-                                  <A href={`/races/${props.params.eventId}/edit/${run.runId}`}>
+                                  <A href={`/races/${params.eventId}/edit/${run.runId}`}>
                                     <Button variant="outline" size="sm">
                                       Edit
                                     </Button>

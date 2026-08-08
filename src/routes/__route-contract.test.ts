@@ -64,14 +64,14 @@ function hasDefaultExport(filePath: string): boolean {
   return /export\s+default\s+(function|async\s+function|const\s+\w+)/.test(content);
 }
 
-function usesParamsCorrectly(filePath: string): { ok: boolean; hasParamRoute: boolean } {
+function usesUseParamsIfNeeded(filePath: string): { ok: boolean } {
   const content = readFileSync(filePath, "utf-8");
-  const hasParamRoute = /\[.*\]/.test(filePath);
-  if (!hasParamRoute) return { ok: true, hasParamRoute: false };
-  // Param routes must not use props.id / props.eventId directly
-  const badPattern = /props\.\b(id|eventId|runId)\b(?!\.params)/;
-  const hasBad = badPattern.test(content);
-  return { ok: !hasBad, hasParamRoute: true };
+  const contentLower = content.toLowerCase();
+  const hasParamRoute = /\[(?!\.\.\.)/.test(filePath);
+  if (!hasParamRoute) return { ok: true };
+  // Param routes must use useParams() from @solidjs/router
+  const usesUseParams = contentLower.includes("useparams");
+  return { ok: usesUseParams };
 }
 
 const allRoutes = discoverRoutes();
@@ -92,15 +92,13 @@ describe("Route file contract", () => {
   }
 
   for (const route of pageRoutes) {
-    it(`${route.pattern} uses correct param syntax`, () => {
+    it(`${route.pattern} uses useParams for dynamic routes`, () => {
       const fullPath = resolve(ROUTES_DIR, route.relative);
-      const result = usesParamsCorrectly(fullPath);
-      if (result.hasParamRoute) {
-        expect(
-          result.ok,
-          `${route.relative}: uses props.id/eventId/runId instead of props.params`,
-        ).toBe(true);
-      }
+      const result = usesUseParamsIfNeeded(fullPath);
+      expect(
+        result.ok,
+        `${route.relative}: param route must use useParams() instead of props.params`,
+      ).toBe(true);
     });
   }
 });

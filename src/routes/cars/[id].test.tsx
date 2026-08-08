@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
 import { render, screen } from "@solidjs/testing-library";
 import { MetaProvider } from "@solidjs/meta";
-import { getCar, deleteCar } from "~/server/api/cars";
+import { getCar } from "~/server/api/cars";
 
 vi.mock("~/server/api/cars", () => ({
   getCar: vi.fn<typeof getCar>(),
@@ -11,6 +11,7 @@ vi.mock("~/server/api/cars", () => ({
 vi.mock("@solidjs/router", () => ({
   A: (props: { href: string; children: any }) => <a href={props.href}>{props.children}</a>,
   useNavigate: () => () => {},
+  useParams: () => ({ id: "1" }),
 }));
 
 const mockedGetCar = vi.mocked(getCar);
@@ -48,13 +49,13 @@ describe("CarDetail", () => {
 
   it("renders car name when found", async () => {
     mockedGetCar.mockResolvedValue(mockCar as any);
-    render(() => <CarDetail params={{ id: "1" }} />, { wrapper });
+    render(() => <CarDetail />, { wrapper });
     expect(await screen.findByText("Lightning")).toBeInTheDocument();
   });
 
   it("renders car specs", async () => {
     mockedGetCar.mockResolvedValue(mockCar as any);
-    render(() => <CarDetail params={{ id: "1" }} />, { wrapper });
+    render(() => <CarDetail />, { wrapper });
     await screen.findByText("Lightning");
     expect(screen.getByText("S10")).toBeInTheDocument();
     expect(screen.getByText("FK-180SH")).toBeInTheDocument();
@@ -63,7 +64,7 @@ describe("CarDetail", () => {
 
   it("shows edit and delete buttons", async () => {
     mockedGetCar.mockResolvedValue(mockCar as any);
-    render(() => <CarDetail params={{ id: "1" }} />, { wrapper });
+    render(() => <CarDetail />, { wrapper });
     await screen.findByText("Lightning");
     expect(screen.getByText("Edit")).toBeInTheDocument();
     expect(screen.getByText("Delete")).toBeInTheDocument();
@@ -71,14 +72,14 @@ describe("CarDetail", () => {
 
   it("shows back link to cars list", async () => {
     mockedGetCar.mockResolvedValue(mockCar as any);
-    render(() => <CarDetail params={{ id: "1" }} />, { wrapper });
+    render(() => <CarDetail />, { wrapper });
     await screen.findByText("Lightning");
     expect(screen.getByText(/back to cars/i)).toBeInTheDocument();
   });
 
   it("shows loading state initially", () => {
-    mockedGetCar.mockReturnValue(new Promise(() => {})); // never resolves
-    render(() => <CarDetail params={{ id: "1" }} />, { wrapper });
+    mockedGetCar.mockReturnValue(new Promise(() => {}));
+    render(() => <CarDetail />, { wrapper });
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 });

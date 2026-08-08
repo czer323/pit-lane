@@ -1,5 +1,5 @@
 import { Title } from "@solidjs/meta";
-import { A, useNavigate } from "@solidjs/router";
+import { A, useNavigate, useParams } from "@solidjs/router";
 import { For, Show, createResource, createSignal, Suspense } from "solid-js";
 import { getCar, deleteCar } from "~/server/api/cars";
 import { Button } from "~/components/ui/button";
@@ -7,9 +7,10 @@ import { Badge } from "~/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 
-export default function CarDetail(props: { params: { id: string } }) {
-  const id = () => props.params.id;
+export default function CarDetail() {
+  const params = useParams();
   const navigate = useNavigate();
+  const id = () => params.id;
   const [car] = createResource(() => getCar(Number(id())));
   const [confirmDelete, setConfirmDelete] = createSignal(false);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
