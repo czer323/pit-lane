@@ -24,6 +24,7 @@ vi.mock("~/server/api/cars", () => ({
       gearRatio: 3.0,
       tireDiaMm: 22.5,
       rollout: 23.56,
+      atTrack: false,
       createdAt: "2026-01-01",
       updatedAt: "2026-01-01",
     },
@@ -41,6 +42,7 @@ vi.mock("~/server/api/cars", () => ({
       gearRatio: 3.5,
       tireDiaMm: 21.0,
       rollout: 18.85,
+      atTrack: true,
       createdAt: "2026-02-01",
       updatedAt: "2026-02-01",
     },
@@ -52,7 +54,7 @@ import CarList from "./index";
 const wrapper = (props: { children: any }) => <MetaProvider>{props.children}</MetaProvider>;
 
 describe("CarList", () => {
-  it("renders a table with all registered cars", async () => {
+  it("renders car cards with names", async () => {
     render(() => <CarList />, { wrapper });
     const lightning = await screen.findByText("Lightning");
     expect(lightning).toBeInTheDocument();
@@ -60,11 +62,24 @@ describe("CarList", () => {
     expect(thunder).toBeInTheDocument();
   });
 
-  it("renders table headers", async () => {
+  it("renders car specs on each card", async () => {
     render(() => <CarList />, { wrapper });
-    const nameHeader = await screen.findByText("Name");
-    expect(nameHeader).toBeInTheDocument();
-    const motorHeader = screen.getByText("Motor");
-    expect(motorHeader).toBeInTheDocument();
+    // Wait for data to load
+    await screen.findByText("Lightning");
+    // Specs are visible as text content
+    const fkElement = screen.getByText("FK-180SH");
+    expect(fkElement).toBeInTheDocument();
+    const s10Element = screen.getByText("S10");
+    expect(s10Element).toBeInTheDocument();
+  });
+
+  it("shows at-track badge for at-track cars", async () => {
+    render(() => <CarList />, { wrapper });
+    expect(await screen.findByText(/at track/i)).toBeInTheDocument();
+  });
+
+  it("shows + Add Car button", async () => {
+    render(() => <CarList />, { wrapper });
+    expect(await screen.findByRole("link", { name: /add car/i })).toBeInTheDocument();
   });
 });
