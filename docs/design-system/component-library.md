@@ -43,7 +43,7 @@ Defined as CSS custom properties in `src/app.css` under `:root`. Matches `docs/d
 | Separator | `src/components/ui/separator.tsx` | orientation: horizontal, vertical |
 | Switch | `src/components/ui/switch.tsx` | checked, onCheckedChange |
 | Tabs | `src/components/ui/tabs.tsx` | Tabs, TabsList, TabsTrigger, TabsContent — value-based |
-| Select | `src/components/ui/select.tsx` | Select, SelectTrigger, SelectContent, SelectItem — string options |
+| Select | `src/components/ui/select.tsx` | Select, SelectTrigger, SelectContent, SelectItem — **reduced contract**: click-to-select only; for form pages needing native `name`/`value` binding with `FormData`, use native `<select>` elements styled with the input class instead |
 | Button | `src/components/ui/button.tsx` | variant: default, destructive, outline, secondary, ghost, link · size: sm, default, lg, icon |
 
 ## Adding a Component

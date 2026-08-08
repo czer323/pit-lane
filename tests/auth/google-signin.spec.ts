@@ -18,10 +18,10 @@ test("Google sign-in works end-to-end on local dev", async ({ page }) => {
     "GOOGLE_TEST_EMAIL / GOOGLE_TEST_PASSWORD not set in .env.local",
   );
 
-  // 1. Signed-out access to app routes redirects to /login
-  await page.goto("/");
+  // 1. Signed-out access to protected route redirects to /login
+  await page.goto("/fleet");
   await page.waitForURL("**/login");
-  await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /sign in with google/i })).toBeVisible();
 
   // 2. Click "Sign in with Google"
   await page.getByRole("button", { name: /sign in with google/i }).click();

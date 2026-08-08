@@ -23,9 +23,9 @@ export function Switch(props: SwitchProps) {
   const toggle = () => {
     if (isControlled()) {
       local.onCheckedChange?.(!local.checked);
-    } else {
-      setChecked(!checked());
-      local.onCheckedChange?.(!checked());
+      const next = !checked();
+      setChecked(next);
+      local.onCheckedChange?.(next);
     }
   };
 

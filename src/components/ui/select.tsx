@@ -21,7 +21,6 @@ const SelectContext = createContext<SelectContextValue>();
 
 // --- Root ---
 type SelectProps = {
-  options: string[];
   value?: string;
   defaultValue?: string;
   placeholder?: string;
