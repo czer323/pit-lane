@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 
-export default function EventRuns(props: { eventId: string }) {
-  const eventId = () => Number(props.eventId);
+export default function EventRuns(props: { params: { eventId: string } }) {
+  const eventId = () => Number(props.params.eventId);
   const [event] = createResource(eventId, getEvent);
   const [runs, { refetch }] = createResource(eventId, listRuns);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
@@ -81,10 +81,10 @@ export default function EventRuns(props: { eventId: string }) {
                   </CardHeader>
                   <CardContent>
                     <div class="flex flex-wrap gap-2">
-                      <A href={`/races/${props.eventId}/quick`}>
+                      <A href={`/races/${props.params.eventId}/quick`}>
                         <Button size="sm">Quick Entry</Button>
                       </A>
-                      <A href={`/races/${props.eventId}/batch`}>
+                      <A href={`/races/${props.params.eventId}/batch`}>
                         <Button size="sm" variant="outline">
                           Batch Entry
                         </Button>
@@ -177,7 +177,7 @@ export default function EventRuns(props: { eventId: string }) {
                                       {run.win ? "Win" : "Loss"}
                                     </Badge>
                                   </Show>
-                                  <A href={`/races/${props.eventId}/edit/${run.runId}`}>
+                                  <A href={`/races/${props.params.eventId}/edit/${run.runId}`}>
                                     <Button variant="outline" size="sm">
                                       Edit
                                     </Button>

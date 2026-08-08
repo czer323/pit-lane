@@ -13,10 +13,10 @@ import { Label } from "~/components/ui/label";
 const selectClass =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function EditRun(props: { eventId: string; runId: string }) {
+export default function EditRun(props: { params: { eventId: string; runId: string } }) {
   const navigate = useNavigate();
-  const runId = () => Number(props.runId);
-  const [event] = createResource(() => Number(props.eventId), getEvent);
+  const runId = () => Number(props.params.runId);
+  const [event] = createResource(() => Number(props.params.eventId), getEvent);
   const [cars] = createResource(listCars);
   const [run] = createResource(runId, getRun);
   const [submitting, setSubmitting] = createSignal(false);
@@ -60,11 +60,11 @@ export default function EditRun(props: { eventId: string; runId: string }) {
       delete input.dialIn;
       delete input.win;
     }
-    input.eventId = Number(props.eventId);
+    input.eventId = Number(props.params.eventId);
     try {
       const result = await updateRun(runId(), input);
       setWarnings(result.warnings);
-      navigate(`/races/${props.eventId}`);
+      navigate(`/races/${props.params.eventId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -76,7 +76,7 @@ export default function EditRun(props: { eventId: string; runId: string }) {
     setDeleteError(null);
     try {
       await deleteRun(runId());
-      navigate(`/races/${props.eventId}`);
+      navigate(`/races/${props.params.eventId}`);
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : String(err));
       setConfirmDelete(false);
@@ -90,7 +90,7 @@ export default function EditRun(props: { eventId: string; runId: string }) {
         <Show when={event() && run()}>
           <div class="space-y-2">
             <A
-              href={`/races/${props.eventId}`}
+              href={`/races/${props.params.eventId}`}
               class="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               ← Back to Runs

@@ -24,8 +24,8 @@ interface BatchRow {
 const selectClass =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function BatchEntry(props: { eventId: string }) {
-  const eventId = () => Number(props.eventId);
+export default function BatchEntry(props: { params: { eventId: string } }) {
+  const eventId = () => Number(props.params.eventId);
   const [event] = createResource(eventId, getEvent);
   const [cars] = createResource(listCars);
   const [rows, setRows] = createSignal<BatchRow[]>([freshRow(1)]);
@@ -140,7 +140,7 @@ export default function BatchEntry(props: { eventId: string }) {
           {(ev) => (
             <div class="space-y-2">
               <A
-                href={`/races/${props.eventId}`}
+                href={`/races/${props.params.eventId}`}
                 class="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 ← Back to Runs

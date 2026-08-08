@@ -7,9 +7,10 @@ import { Badge } from "~/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 
-export default function CarDetail(props: { id: string }) {
+export default function CarDetail(props: { params: { id: string } }) {
+  const id = () => props.params.id;
   const navigate = useNavigate();
-  const [car] = createResource(() => getCar(Number(props.id)));
+  const [car] = createResource(() => getCar(Number(id())));
   const [confirmDelete, setConfirmDelete] = createSignal(false);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleting, setDeleting] = createSignal(false);
@@ -18,7 +19,7 @@ export default function CarDetail(props: { id: string }) {
     setDeleteError(null);
     setDeleting(true);
     try {
-      await deleteCar(Number(props.id));
+      await deleteCar(Number(id()));
       navigate("/cars");
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : String(err));
@@ -46,7 +47,7 @@ export default function CarDetail(props: { id: string }) {
                   {c().atTrack && <Badge variant="default">At track</Badge>}
                 </div>
                 <div class="flex gap-2">
-                  <A href={`/cars/${props.id}/edit`}>
+                  <A href={`/cars/${id()}/edit`}>
                     <Button variant="outline" size="sm">
                       Edit
                     </Button>

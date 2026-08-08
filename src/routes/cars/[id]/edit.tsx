@@ -10,12 +10,12 @@ function fieldId(name: string) {
   return `field-${name.replace(/\s+/g, "-").toLowerCase()}`;
 }
 
-export default function EditCar(props: { id: string }) {
+export default function EditCar(props: { params: { id: string } }) {
   const navigate = useNavigate();
   const [error, setError] = createSignal<string | null>(null);
   const [success, setSuccess] = createSignal<string | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
-  const [car] = createResource(() => getCar(Number(props.id)));
+  const [car] = createResource(() => getCar(Number(props.params.id)));
 
   // Editable signals
   const [name, setName] = createSignal("");
@@ -74,7 +74,7 @@ export default function EditCar(props: { id: string }) {
     }
 
     try {
-      await updateCar(Number(props.id), {
+      await updateCar(Number(props.params.id), {
         name: name().trim(),
         body: body() || null,
         bodyType: bodyType() || null,
@@ -87,7 +87,7 @@ export default function EditCar(props: { id: string }) {
         tireDiaMm: tireDiaMm() ? Number(tireDiaMm()) : null,
       });
       setSuccess("Saved!");
-      navigate(`/cars/${props.id}`);
+      navigate(`/cars/${props.params.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -100,7 +100,7 @@ export default function EditCar(props: { id: string }) {
       <Title>Edit Car — Pit Lane</Title>
 
       <A
-        href={`/cars/${props.id}`}
+        href={`/cars/${props.params.id}`}
         class="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         ← Back to Car
