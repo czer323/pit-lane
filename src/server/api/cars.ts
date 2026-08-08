@@ -7,6 +7,7 @@ import { getDb } from "~/server/db";
 import { cars, carSnapshots, runs } from "~/server/db/schema";
 import { insertCarSchema, insertCarSnapshotSchema } from "~/server/db/validation";
 import { getCurrentUserId, UnauthorizedError } from "~/lib/session";
+import { toggleAtTrack } from "~/lib/fleet";
 
 // ─── Input schemas (derived, not modifying validation.ts) ─────────────
 
@@ -234,4 +235,23 @@ export async function addSnapshot(carId: number, input: unknown) {
     .returning();
 
   return created;
+}
+
+/**
+ * Mark a car as currently at the track (or remove it).
+ * Wraps the pure toggleAtTrack with auth + DB injection.
+ */
+export async function setAtTrack(input: { carId: number; atTrack: boolean }) {
+  const userId = await requireUserId();
+  const db = getDb();
+
+  // Verify ownership before toggling — toggleAtTrack doesn't check
+  const [existing] = await db
+    .select()
+    .from(cars)
+    .where(and(eq(cars.carId, input.carId), eq(cars.userId, userId)));
+
+  if (!existing) throw new Error("Car not found");
+
+  return toggleAtTrack(db, input);
 }

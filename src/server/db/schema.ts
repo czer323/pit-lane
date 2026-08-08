@@ -164,6 +164,8 @@ export const cars = sqliteTable("cars", {
   tireDiaMm: real("tire_dia_mm"),
   /** Distance per motor revolution. tire_circumference / gear_ratio. */
   rollout: real("rollout"),
+  /** Whether car is marked as currently at the track. */
+  atTrack: integer("at_track", { mode: "boolean" }).notNull().default(false),
   /** ISO 8601 date car record first created. */
   createdAt: text("created_at").notNull(),
   /** ISO 8601 date car record last modified. */

@@ -9,9 +9,11 @@ import { cars, carSnapshots, events, runs } from "./schema";
 
 export const insertCarSchema = createInsertSchema(cars).extend({
   userId: z.string().nullish(),
+  atTrack: z.boolean().optional(),
 });
 export const selectCarSchema = createSelectSchema(cars).extend({
   userId: z.string().nullish(),
+  atTrack: z.boolean().optional(),
 });
 
 export const insertCarSnapshotSchema = createInsertSchema(carSnapshots);
