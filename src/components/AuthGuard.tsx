@@ -1,22 +1,22 @@
 import { useLocation, useNavigate } from "@solidjs/router";
-import { createSignal, createEffect, Show, type JSX } from "solid-js";
+import { createEffect, type JSX } from "solid-js";
 import { authClient } from "~/lib/auth-client";
 import { resolveGuardAction } from "~/lib/guard";
 
 /**
- * Client-side route guard. Complements the server middleware: after
- * hydration the better-auth session is fetched in the browser, and
- * signed-out users are redirected to /login (signed-in users away from
- * /login). Covers client-side navigation, which never hits the server.
+ * Client-side route guard. The server middleware (src/middleware/index.ts)
+ * handles initial requests — this only runs on client-side navigations
+ * (e.g. expired session after hours of idle, or direct SPA route changes).
  *
- * Prevents flash of protected content by withholding children until
- * the session resolves to an "allow" decision.
+ * Children render unconditionally; redirect fires as an effect only when
+ * the session resolves and the user lacks access. A brief flash is
+ * acceptable here because the server middleware prevents unauthenticated
+ * SSR of protected pages.
  */
 export default function AuthGuard(props: { children: JSX.Element }) {
   const location = useLocation();
   const navigate = useNavigate();
   const session = authClient.useSession();
-  const [allowed, setAllowed] = createSignal(false);
 
   createEffect(() => {
     const current = session();
@@ -26,14 +26,8 @@ export default function AuthGuard(props: { children: JSX.Element }) {
       navigate("/login", { replace: true });
     } else if (action === "redirect-home") {
       navigate("/", { replace: true });
-    } else {
-      setAllowed(true);
     }
   });
 
-  return (
-    <Show when={allowed()} fallback={<div class="min-h-screen" aria-busy="true" />}>
-      {props.children}
-    </Show>
-  );
+  return <>{props.children}</>;
 }
