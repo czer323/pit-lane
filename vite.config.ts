@@ -4,6 +4,7 @@ import { nitro } from "nitro/vite";
 import { solidStart } from "@solidjs/start/config";
 import solid from "vite-plugin-solid";
 import { lazyPlugins } from "vite-plus";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   staged: {
@@ -111,6 +112,7 @@ export default defineConfig({
     return [
       solidStart({ middleware: "src/middleware/index.ts" }),
       nitro({ preset: "vercel" }),
+      tailwindcss(),
       solid(),
     ];
   }),

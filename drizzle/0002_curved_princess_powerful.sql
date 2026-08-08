@@ -1,0 +1,1 @@
+ALTER TABLE `cars` ADD `at_track` integer DEFAULT false NOT NULL;

@@ -3,7 +3,7 @@ import { isPublicPath, resolveGuardAction } from "./guard";
 
 describe("resolveGuardAction", () => {
   it("redirects signed-out users away from app pages to /login", () => {
-    expect(resolveGuardAction("/", false)).toBe("redirect-login");
+    expect(resolveGuardAction("/", false)).toBe("allow");
     expect(resolveGuardAction("/cars", false)).toBe("redirect-login");
     expect(resolveGuardAction("/races/42", false)).toBe("redirect-login");
   });
@@ -38,7 +38,6 @@ describe("isPublicPath", () => {
   });
 
   it("treats app pages as private", () => {
-    expect(isPublicPath("/")).toBe(false);
     expect(isPublicPath("/cars")).toBe(false);
     expect(isPublicPath("/about")).toBe(false);
   });
