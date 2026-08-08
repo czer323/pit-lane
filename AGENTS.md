@@ -29,6 +29,7 @@ Pit Lane is a web hosted tracker for Slot Car racing.
 - **Types**: Keep types in `src/shared` where they are reused across bundles.
 - **Components**: Prefer small Solid components with clear props. Co-locate styles and logic.
 - **State editing UX**: Validate inputs where possible; surface errors inline.
+- **Library-first**: Prefer established libraries and components for non-glue functionality (auth, roles, ORM, UI, validation). Hand-rolled vanilla TS/JS only when no maintained library fits, or for minimal glue. Do not reimplement what a library already provides. Goal is scalable, cookie-cutter composition, not bespoke code.
 
 ### Repo Hygiene
 
@@ -385,3 +386,26 @@ br sync --flush-only                  # Export DB to JSONL after Beads mutations
 `br` never commits or pushes. Follow this repository's own git instructions before staging, committing, or pushing. If the repository says "commit only when asked," that rule overrides any generic workflow advice.
 
 <!-- end-bv-agent-instructions -->
+
+<!-- SWARM PROTOCOL START -->
+
+# Swarm Protocol (80/20, coordinator-gated)
+
+Deep-mode swarm gives implementer/reviewer separation, but default deep mode is scope-unbounded: gates auto-inject work, workers self-direct for hours, cards appear without user agreement. This protocol governs all swarm use in this repo.
+
+## Rules
+
+1. **Every swarm run anchors to a Beads card.** Plan nodes derive from the card's acceptance criteria. Success = AC met. No orphan goals.
+2. **Seed 1 implementer + 1 critique gate** (mode deep). Two nodes only. Light mode (no gates) for quick tasks.
+3. **Gates report findings; they never auto-execute.** Coordinator surfaces every gate finding to the user before any worker moves. User decides: in scope, out of scope, or new card.
+4. **Max 2 gate rounds per run**, then forced check-in: ship, expand, or stop.
+5. **Workers are time-boxed** (default 10-15 min). Coordinator checks in at milestones, not at the end.
+6. **Workers never create or close cards.** Card mutations are coordinator-only, with user awareness.
+7. **Progress is visible.** Coordinator keeps a live side-panel page plus `br update` status on the card after every round.
+8. **80/20 target.** Does 80% of the job, ship-ready, momentum over perfection. Deep investigation only for real blockers the user opts into. Do not chase unknown permutations.
+
+## Why
+
+A 2-node probe once became 16 assignments, 40 minutes, and 2 unrequested cards. Governance over autonomy: the user sets objectives, the tracker records them, and the coordinator gates scope at every step.
+
+<!-- END SWARM PROTOCOL -->
