@@ -1,7 +1,8 @@
-import { createSignal, type JSX } from "solid-js";
+import { createSignal } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { createCar } from "~/server/api/cars";
 
 function fieldId(name: string) {
   return `field-${name.replace(/\s+/g, "-").toLowerCase()}`;
@@ -14,6 +15,8 @@ export default function AddCarForm() {
   const [motor, setMotor] = createSignal("");
   const [weight, setWeight] = createSignal("");
   const [error, setError] = createSignal("");
+  const [success, setSuccess] = createSignal("");
+  const [submitting, setSubmitting] = createSignal(false);
 
   function validate(): boolean {
     if (!name().trim()) {
@@ -24,10 +27,36 @@ export default function AddCarForm() {
     return true;
   }
 
-  function handleSubmit(e: Event) {
+  function resetForm() {
+    setName("");
+    setBody("");
+    setChassis("");
+    setMotor("");
+    setWeight("");
+  }
+
+  async function handleSubmit(e: Event) {
     e.preventDefault();
+    setError("");
+    setSuccess("");
     if (!validate()) return;
-    // Submit logic in next increment
+
+    setSubmitting(true);
+    try {
+      await createCar({
+        name: name().trim(),
+        body: body() || undefined,
+        chassis: chassis() || undefined,
+        motor: motor() || undefined,
+        weightG: weight() ? Number(weight()) : undefined,
+      });
+      setSuccess(`${name()} added!`);
+      resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add car");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -93,7 +122,15 @@ export default function AddCarForm() {
         </p>
       )}
 
-      <Button type="submit">Add Car</Button>
+      {success() && (
+        <p role="status" class="text-sm text-green-400">
+          {success()}
+        </p>
+      )}
+
+      <Button type="submit" disabled={submitting()}>
+        {submitting() ? "Adding..." : "Add Car"}
+      </Button>
     </form>
   );
 }
