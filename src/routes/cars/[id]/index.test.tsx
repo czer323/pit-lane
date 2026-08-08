@@ -16,7 +16,7 @@ vi.mock("@solidjs/router", () => ({
 
 const mockedGetCar = vi.mocked(getCar);
 
-import CarDetail from "./[id]";
+import CarDetail from "./index";
 
 const wrapper = (props: { children: any }) => <MetaProvider>{props.children}</MetaProvider>;
 
